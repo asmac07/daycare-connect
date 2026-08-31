@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+
+@theme {
+  --color-dc-blue: #4A90A4;
+  --color-dc-green: #7FB685;
+  --color-dc-ink: #33475B;
+  --color-dc-muted: #7C93A3;
+  --color-dc-border: #DCEFE9;
+  --color-dc-field: #FAFEFD;
+  --color-dc-mist: #EAF6F5;
+  --color-dc-mist-2: #F3F8EE;
+  --color-dc-hover: #F3F9F7;
+  --color-dc-error-bg: #FDECEC;
+  --color-dc-error-text: #C75B5B;
+
+  --font-baloo: "Baloo 2", sans-serif;
+  --font-nunito: "Nunito", sans-serif;
+}
