@@ -31,6 +31,7 @@ const DAYCARE_STATUS = {
 const VISIT_SLOT_STATUS = {
             AVAILABLE: 'available',
             BOOKED: 'booked',
+            RESCHEDULE_REQUESTED: 'reschedule_requested',
             CANCELLED: 'cancelled',
             COMPLETED : 'completed'
 }

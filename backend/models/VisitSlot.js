@@ -20,7 +20,7 @@ const visitSlotSchema = new mongoose.Schema({
         },
         status: {
             type: String,
-            enum: ['available', 'booked', 'cancelled', 'completed'],
+            enum: ['available', 'booked','reschedule_requested', 'cancelled', 'completed'],
             default: 'available'
         },
         bookedBy: {

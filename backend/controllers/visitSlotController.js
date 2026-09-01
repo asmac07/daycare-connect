@@ -4,6 +4,7 @@ const Daycare = require('../models/Daycare')
 const sendEmail = require('../utils/sendEmail')
 const User = require('../models/User')
 const Child = require('../models/Child')
+const mongoose = require('mongoose')
 const { VISIT_SLOT_STATUS } = require('../constants')
 
 
@@ -86,19 +87,33 @@ const getMySlots = async (req, res) => {
   }
 }
 
+
 const getAvailableSlots = async (req, res) => {
   try {
     const { daycareId } = req.params
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     const slots = await VisitSlot.find({
       daycare: daycareId,
-      status: VISIT_SLOT_STATUS.AVAILABLE
+      status: VISIT_SLOT_STATUS.AVAILABLE,
+      date: { $gte: today }
+    }).sort({
+      date: 1,
+      startTime: 1
     })
 
-    res.status(200).json({ success: true, data: slots })
+    res.status(200).json({
+      success: true,
+      data: slots
+    })
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message })
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
   }
 }
 
@@ -161,10 +176,16 @@ const bookSlot = async (req, res) => {
 
 const getMyBookings = async (req, res) => {
   try {
+    
     const bookings = await VisitSlot.find({
-      bookedBy: req.user.id,
-      status: VISIT_SLOT_STATUS.BOOKED
-    })
+        bookedBy: req.user.id,
+        status: {
+          $in: [
+            VISIT_SLOT_STATUS.BOOKED,
+            VISIT_SLOT_STATUS.RESCHEDULE_REQUESTED
+          ]
+        }
+      })
       .populate('daycare', 'name address')
       .populate('bookedBy', 'name email')
 
@@ -250,17 +271,8 @@ const getVisitSlotDetails = async (req, res) => {
     }
 }
 
-const rescheduleBooking = async (req, res) => {
+const requestReschedule = async (req, res) => {
   try {
-    const { date, startTime, endTime } = req.body
-
-    if (!date || !startTime || !endTime) {
-      return res.status(400).json({
-        success: false,
-        message: 'Date, start time and end time are required'
-      })
-    }
-
     const daycare = await Daycare.findOne({
       owner: req.user.id
     })
@@ -275,7 +287,7 @@ const rescheduleBooking = async (req, res) => {
     const slot = await VisitSlot.findOne({
       _id: req.params.id,
       daycare: daycare._id,
-      status: 'booked'
+      status: VISIT_SLOT_STATUS.BOOKED
     })
       .populate('bookedBy', 'name email')
       .populate('child', 'name dateOfBirth gender')
@@ -287,52 +299,156 @@ const rescheduleBooking = async (req, res) => {
       })
     }
 
-    slot.date = date
-    slot.startTime = startTime
-    slot.endTime = endTime
+    // Change booking status
+    slot.status = VISIT_SLOT_STATUS.RESCHEDULE_REQUESTED
 
     await slot.save()
 
+    // Notify parent
     await sendEmail(
       slot.bookedBy.email,
-      'Visit Rescheduled - DayCare Connect',
+      'Visit Reschedule Request - DayCare Connect',
       `
-        <h2>Visit Rescheduled</h2>
+        <h2>Visit Reschedule Request</h2>
 
         <p>Hello ${slot.bookedBy.name},</p>
 
-        <p>Your daycare visit has been rescheduled.</p>
-
         <p>
-          <strong>New Date:</strong>
-          ${new Date(date).toDateString()}
+          The daycare has requested you to reschedule your visit.
         </p>
 
         <p>
-          <strong>New Time:</strong>
-          ${startTime} - ${endTime}
+          Please log in and select another available slot.
+        </p>
+
+        <p>
+          <strong>Current Date:</strong>
+          ${new Date(slot.date).toDateString()}
+        </p>
+
+        <p>
+          <strong>Current Time:</strong>
+          ${slot.startTime} - ${slot.endTime}
         </p>
 
         <p>
           <strong>Child:</strong>
           ${slot.child?.name || 'Not available'}
         </p>
-
-        <p>Please make sure to attend at the new scheduled time.</p>
       `
     )
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: 'Visit rescheduled successfully',
+      message: 'Reschedule request sent to parent',
       data: slot
     })
 
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message
     })
+  }
+}
+
+const rescheduleToNewSlot = async (req, res) => {
+  const session = await mongoose.startSession()
+
+  try {
+    const { newSlotId } = req.body
+    const oldSlotId = req.params.id
+
+    // 1. Check new slot ID
+    if (!newSlotId) {
+      return res.status(400).json({
+        success: false,
+        message: 'New slot is required'
+      })
+    }
+
+    // 2. Prevent selecting the same slot
+    if (oldSlotId === newSlotId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select a different slot'
+      })
+    }
+
+    // 3. Start transaction
+    session.startTransaction()
+
+    // 4. Find the old booking
+    const oldSlot = await VisitSlot.findOne({
+      _id: oldSlotId,
+      bookedBy: req.user.id,
+      status: VISIT_SLOT_STATUS.RESCHEDULE_REQUESTED
+    }).session(session)
+
+    if (!oldSlot) {
+      await session.abortTransaction()
+
+      return res.status(404).json({
+        success: false,
+        message: 'Reschedule request not found'
+      })
+    }
+
+    // 5. Find the new slot
+    const newSlot = await VisitSlot.findOne({
+      _id: newSlotId,
+      daycare: oldSlot.daycare,
+      status: VISIT_SLOT_STATUS.AVAILABLE
+    }).session(session)
+
+    if (!newSlot) {
+      await session.abortTransaction()
+
+      return res.status(400).json({
+        success: false,
+        message: 'Selected slot is no longer available'
+      })
+    }
+
+    // 6. Save Parent and Child IDs
+    const parentId = oldSlot.bookedBy
+    const childId = oldSlot.child
+
+    // 7. Release old slot
+    oldSlot.status = VISIT_SLOT_STATUS.AVAILABLE
+    oldSlot.bookedBy = null
+    oldSlot.child = null
+
+    await oldSlot.save({ session })
+
+    // 8. Book new slot
+    newSlot.status = VISIT_SLOT_STATUS.BOOKED
+    newSlot.bookedBy = parentId
+    newSlot.child = childId
+
+    await newSlot.save({ session })
+
+    // 9. Commit transaction
+    await session.commitTransaction()
+
+    return res.status(200).json({
+      success: true,
+      message: 'Visit rescheduled successfully',
+      data: newSlot
+    })
+
+  } catch (error) {
+
+    await session.abortTransaction()
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+
+  } finally {
+
+    session.endSession()
   }
 }
 
@@ -411,6 +527,7 @@ const cancelBookingByOwner = async (req, res) => {
     })
   }
 }
+
 
 const markVisitCompleted = async (req, res) => {
   try {
@@ -494,5 +611,6 @@ const markVisitCompleted = async (req, res) => {
   }
 module.exports = { createSlot, getMySlots, getAvailableSlots,
    bookSlot, cancelBooking , getVisitSlotDetails ,
-    getMyBookings ,rescheduleBooking , cancelBookingByOwner,
+    getMyBookings ,requestReschedule ,
+    rescheduleToNewSlot, cancelBookingByOwner,
     markVisitCompleted}
