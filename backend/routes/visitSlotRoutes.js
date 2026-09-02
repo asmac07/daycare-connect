@@ -24,5 +24,5 @@ router.get('/daycare/:daycareId',protect,authorizeRoles('parent'),getAvailableSl
 router.put('/:id/book',protect,authorizeRoles('parent'),bookSlot)
 router.put('/:id/cancel',protect,authorizeRoles('parent'),cancelBooking)
 router.get('/myBookings', protect, authorizeRoles('parent'), getMyBookings)
-router.put( '/:id/reschedule', protect, authorizeRoles('parent'),rescheduleToNewSlot)
+router.patch( '/:id/reschedule', protect, authorizeRoles('parent'),rescheduleToNewSlot)
 module.exports = router

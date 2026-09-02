@@ -77,7 +77,7 @@ const getMySlots = async (req, res) => {
     const slots = await VisitSlot.find({ daycare: daycare._id })
                     .populate('bookedBy', 'name email')
                     .populate('child', 'name dateOfBirth')
-
+                    .sort({ updatedAt: -1 })
     res.status(200).json({
        success: true,
         data: slots })
@@ -148,6 +148,7 @@ const bookSlot = async (req, res) => {
               { 
                 status: VISIT_SLOT_STATUS.BOOKED ,
                  bookedBy: req.user.id ,
+                 bookedAt: new Date(),
                  child : childId
               },
               { 
@@ -188,6 +189,7 @@ const getMyBookings = async (req, res) => {
       })
       .populate('daycare', 'name address')
       .populate('bookedBy', 'name email')
+      .sort({ updatedAt:-1 })
 
     res.status(200).json({
       success: true,
@@ -250,7 +252,7 @@ const getVisitSlotDetails = async (req, res) => {
       const slot = await VisitSlot.findById(req.params.id)
         .populate('bookedBy', 'name email')
         .populate('child', 'name dateOfBirth')
-
+        .sort({ bookedAt: -1})
       if (!slot) {
         return res.status(404).json({
           success: false,
@@ -414,18 +416,19 @@ const rescheduleToNewSlot = async (req, res) => {
     const parentId = oldSlot.bookedBy
     const childId = oldSlot.child
 
-    // 7. Release old slot
+    // 7. mark old slot as rescheduled
     oldSlot.status = VISIT_SLOT_STATUS.AVAILABLE
     oldSlot.bookedBy = null
     oldSlot.child = null
-
+    oldSlot.bookedAt = null
     await oldSlot.save({ session })
 
     // 8. Book new slot
     newSlot.status = VISIT_SLOT_STATUS.BOOKED
     newSlot.bookedBy = parentId
     newSlot.child = childId
-
+    newSlot.bookedAt = new Date()
+    
     await newSlot.save({ session })
 
     // 9. Commit transaction

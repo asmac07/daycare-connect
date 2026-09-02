@@ -20,12 +20,15 @@ const visitSlotSchema = new mongoose.Schema({
         },
         status: {
             type: String,
-            enum: ['available', 'booked','reschedule_requested', 'cancelled', 'completed'],
+            enum: ['available', 'booked','reschedule_requested', 'rescheduled','cancelled', 'completed'],
             default: 'available'
         },
         bookedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
+        },
+        bookedAt: {
+            type: Date
         },
         child: {
             type: mongoose.Schema.Types.ObjectId,
