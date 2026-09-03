@@ -71,45 +71,44 @@ io.on("connection", (socket) => {
           text: data.text
         })
         
-        
-socket.on("messageRead", async (data) => {
-  try {
+        io.to(data.roomId).emit("newMessage", message) 
+        // Mark message as delivered
 
-    const message = await Message.findById(data.messageId)
+        message.delivered = true
+         await message.save()
 
-    if (!message) return
+         // Notify both users
+          io.to(data.roomId).emit("messageDelivered", { 
+            messageId: message._id 
+          })
+        } catch (error) {
+           console.log("Send message error:", error) 
+          } 
+        })
 
-    // Mark message as read
-    message.read = true
-    message.readAt = new Date()
+    socket.on("messageRead", async (data) => {
+      try {
 
-    await message.save()
+        const message = await Message.findById(data.messageId)
 
-    // Notify both users
-    io.to(data.roomId).emit("messageRead", {
-      messageId: message._id
-    })
+        if (!message) return
 
-  } catch (error) {
-    console.log("Message read error:", error)
+        // Mark message as read
+        message.read = true
+        message.readAt = new Date()
+
+        await message.save()
+
+        // Notify both users
+        io.to(data.roomId).emit("messageRead", {
+          messageId: message._id
+        })
+
+   } catch (error) {
+     console.log("Message read error:", error)
   }
 })
 
-
-        io.to(data.roomId).emit("newMessage", message)
-
-        // Mark message as delivered 
-        message.delivered = true 
-        await message.save()
-        
-        io.to(data.roomId).emit("messageDelivered", { 
-          messageId: message._id })
-
-      }
-       catch (error) {
-        console.log(error)
-      }
-    })
 
     socket.on("disconnect", () => {
       console.log("User Disconnected:", socket.id)
