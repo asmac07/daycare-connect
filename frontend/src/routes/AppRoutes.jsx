@@ -26,6 +26,7 @@ import OwnerStaff from '../pages/owner/OwnerStaff'
 import OwnerReviews from '../pages/owner/OwnerReviews'
 import OwnerVisitSlots from '../pages/owner/OwnerVisitSlots'
 import OwnerMessages from '../pages/owner/OwnerMessages'
+import OwnerWallet from '../pages/owner/OwnerWallet'
 
 import ParentDashboard from '../pages/parent/ParentDashboard'
 import ParentChildren from '../pages/parent/ParentChildren'
@@ -38,6 +39,7 @@ import StaffDashboard from '../pages/staff/StaffDashboard'
 import StaffAssignedChildren from '../pages/staff/StaffAssignedChildren'
 // import StaffDaycare from '../pages/staff/StaffDaycare'
 import SelectRole from '../pages/auth/SelectRole'
+
 
 
 const AppRoutes = () => {
@@ -85,6 +87,7 @@ const AppRoutes = () => {
           <Route path="reviews" element={<OwnerReviews />} />
           <Route path="visitSlots" element={<OwnerVisitSlots />} />
           <Route path="messages" element={<OwnerMessages />} />
+          <Route path="/owner/wallet" element={  <OwnerWallet />  }/>
         </Route>
 
 

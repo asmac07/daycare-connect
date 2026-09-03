@@ -5,6 +5,10 @@ const Enrollment = require('../models/Enrollment')
 const Payment = require('../models/Payment')
 const { ENROLLMENT_STATUS, PAYMENT_STATUS } = require('../constants')
 
+const mongoose = require('mongoose')
+const Wallet = require('../models/Wallet')
+const WalletTransaction = require('../models/WalletTransaction')
+
     // this connect backend to razorpay accnt
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -105,6 +109,9 @@ const createOrder = async (req, res) => {
 }
 
 const verifyPayment= async ( req, res)=>{
+
+   const session = await mongoose.startSession()
+
     try{
             const {
                     razorpay_order_id,
@@ -157,35 +164,115 @@ const verifyPayment= async ( req, res)=>{
                             })
                 }
 
+                // start mongodb transaction
+                session.startTransaction()
+                
+                  // update paymant
                     payment.razorpayPaymentId = razorpay_payment_id
                     payment.razorpaySignature = razorpay_signature
                     payment.status = PAYMENT_STATUS.PAID
                     payment.paidAt = new Date()
 
-                    await payment.save()
+                    await payment.save({ session })
 
+                      //get enrollmnt+ daycare
                     const enrollment = await Enrollment.findById(payment.enrollment)
+                                        .populate('daycare')
+                                        .session(session)
 
-                        if (enrollment) {
-                        enrollment.paymentStatus = 'paid'
-                        enrollment.enrollmentStatus = 'confirmed'
-                        await enrollment.save()
+                        // if (enrollment) {
+                        // enrollment.paymentStatus = 'paid'
+                        // enrollment.enrollmentStatus = 'confirmed'
+                        // await enrollment.save()
+                        // }
+
+                if (!enrollment) {
+                      throw new Error('Enrollment not found')
+                    }
+
+                    //get daycare owner
+
+                     const ownerId = enrollment.daycare.owner
+
+                      // find owner wallet
+                     let wallet = await Wallet.findOne({
+                                  owner: ownerId
+                                }).session(session)
+
+                      //Create Wallet if not exists
+
+                       if (!wallet) {
+
+                          const wallets = await Wallet.create(
+                            [
+                              {
+                                owner: ownerId,
+                                balance: 0
+                              }
+                            ],
+                            { session }
+                          )
+
+                          wallet = wallets[0]
                         }
 
-                    res.status(200).json({
+
+                        // credit owner wallet
+                        wallet.balance += payment.amount
+
+                         await wallet.save({ session })
+
+                         //create trascation  history
+                          await WalletTransaction.create(
+                            [
+                              {
+                                owner: ownerId,
+                                wallet: wallet._id,
+                                type: 'CREDIT',
+                                amount: payment.amount,
+                                reason: 'ENROLLMENT_PAYMENT',
+                                referenceId: payment._id,
+                                balanceAfter: wallet.balance
+                              }
+                            ],
+                            { session }
+                          )
+
+                          //conform enrollmnt
+                          enrollment.paymentStatus = 'paid'
+                            enrollment.enrollmentStatus = 'confirmed'
+
+                            await enrollment.save({ session })
+
+                      //commit trasaction
+                      await session.commitTransaction()
+
+                     res.status(200).json({
                             success: true,
                             message: 'Payment verified successfully',
-                            data: payment
+                            data: {
+                                    paymentId: payment._id,
+                                    amount: payment.amount,
+                                    ownerId: ownerId,
+                                    walletBalance: wallet.balance
+                                  }
                          })
 
         }
          catch(error){
-             console.log('VERIFY PAYMENT ERROR:', error)
+
+          //Rollback everything if any operation fails
+              await session.abortTransaction()
+
+               console.log('VERIFY PAYMENT ERROR:', error)
 
                 res.status(500).json({
                 success: false,
                 message: error.message
                 })
-        }
+            }
+            finally{
+              session.endSession()
+            }
 }
 module.exports = { createOrder , verifyPayment}

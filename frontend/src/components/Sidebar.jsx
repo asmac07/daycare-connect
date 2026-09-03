@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Video,
   User,
+   WalletCards,
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -36,7 +37,9 @@ const linksByRole = {
     { label: 'Staff', path: '/owner/staff', icon: Users },
     { label: 'Reviews', path: '/owner/reviews', icon: Star },
     { label: 'Visit Slots', path: '/owner/visitSlots', icon: CalendarDays },
+    { label: 'Wallet', path: '/owner/wallet', icon: WalletCards },
     { label: 'Messages', path: '/owner/messages',icon: MessageCircle },
+
   ],
 
   [ROLES.PARENT]: [
