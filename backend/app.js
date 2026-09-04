@@ -17,6 +17,8 @@ const visitSlotRoutes = require('./routes/visitSlotRoutes')
 const messageRoutes = require('./routes/messageRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
 const walletRoutes = require('./routes/walletRoutes')
+const staffMessageRoutes = require('./routes/staffMessageRoutes')
+
 const app = express()
 
 // app.use(apiLimiter)
@@ -40,5 +42,6 @@ app.use('/api/v1/visitSlots', visitSlotRoutes)
 app.use('/api/v1/payment', paymentRoutes)
 app.use('/api/v1/messages', messageRoutes)
 app.use('/api/v1/wallet', walletRoutes)
+app.use('/api/v1/staff-messages', staffMessageRoutes)
 
 module.exports = app

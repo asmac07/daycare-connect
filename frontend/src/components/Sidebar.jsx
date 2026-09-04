@@ -49,6 +49,8 @@ const linksByRole = {
     { label: 'My Enrollments', path: '/parent/enrollments', icon: ClipboardList },
     { label: 'Visit Slots', path: '/parent/visitSlots', icon: CalendarDays },
     { label: 'Messages', path: '/parent/messages', icon: MessageCircle },
+     // Parent ↔ Staff chat
+  { label: 'Staff Chats', path: '/parent/staff-chats', icon: MessageCircle },
   ],
 
   [ROLES.STAFF]: [

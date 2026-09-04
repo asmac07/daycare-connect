@@ -34,10 +34,12 @@ import ParentSearch from '../pages/parent/ParentSearch'
 import ParentEnrollments from '../pages/parent/ParentEnrollments'
 import ParentVisitSlots from '../pages/parent/ParentVisitSlots'
 import ParentMessages from '../pages/parent/ParentMessages'
+import ParentStaffMessages from '../pages/parent/ParentStaffMessages'
 
 import StaffDashboard from '../pages/staff/StaffDashboard'
 import StaffAssignedChildren from '../pages/staff/StaffAssignedChildren'
 // import StaffDaycare from '../pages/staff/StaffDaycare'
+import StaffParentChats from '../pages/staff/StaffParentChats'
 import SelectRole from '../pages/auth/SelectRole'
 
 
@@ -107,6 +109,7 @@ const AppRoutes = () => {
           <Route path="enrollments" element={<ParentEnrollments />} />
           <Route path="visitSlots" element={<ParentVisitSlots />} />
           <Route path="messages" element={<ParentMessages />} />
+          <Route path="staff-chats" element={<ParentStaffMessages />} />
         </Route>
 
         
@@ -122,10 +125,10 @@ const AppRoutes = () => {
 
           <Route path="dashboard" element={<StaffDashboard />} />
            <Route path="assigned-children" element={<StaffAssignedChildren />} />
-        </Route>
+           <Route path="parent-chats" element={<StaffParentChats />} />
 
-      </Route>
-
+            </Route>
+          </Route>
     </Routes>
   )
 }

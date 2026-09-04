@@ -276,6 +276,7 @@ const getMyEnrollments = async (req, res) => {
     const enrollments = await Enrollment.find({ parent: req.user.id })
       .populate('child')
       .populate('daycare', 'name address owner')
+      .populate('assignedStaff', 'name email designation')
 
     res.status(200).json({
       success: true,
@@ -386,6 +387,31 @@ const assignStaff = async (req, res) => {
   }
 }
 
+
+const getMyAssignedStaff = async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({
+      parent: req.user.id,
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+      assignedStaff: { $ne: null }
+    })
+      .populate('assignedStaff', 'name email')
+      .populate('daycare', 'name')
+      .populate('child','name')
+
+    res.status(200).json({
+      success: true,
+      data: enrollments
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 module.exports = {
   createEnrollmentRequest,
   approveEnrollment,
@@ -393,5 +419,6 @@ module.exports = {
   getMyEnrollments,
   getDaycareEnrollments,
   assignStaff,
-  deleteEnrollment
+  deleteEnrollment,
+  getMyAssignedStaff
 }

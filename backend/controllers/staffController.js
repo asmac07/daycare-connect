@@ -3,6 +3,7 @@ const User = require('../models/User')
 const Daycare = require('../models/Daycare')
 const Enrollment = require('../models/Enrollment')
 const { ENROLLMENT_STATUS } = require('../constants')
+const StaffMessage = require('../models/StaffMessage')
 
 const bcrypt = require('bcryptjs')
 const sendEmail = require('../utils/sendEmail')
@@ -208,10 +209,48 @@ const getAssignedChildren = async (req, res) => {
   }
 }
 
+const getAssignedParents = async (req, res) => {
+  try {
+    const enrollments = await Enrollment.find({
+      assignedStaff: req.user.id,
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED
+    })
+      .populate('parent', 'name email phone')
+      .populate('child', 'name')
+      .populate('daycare', 'name')
+
+    const parents = enrollments.map((enrollment) => ({
+      enrollmentId: enrollment._id,
+      parent: enrollment.parent,
+      child: enrollment.child,
+      daycare: enrollment.daycare
+    }))
+
+    res.status(200).json({
+      success: true,
+      data: parents
+    })
+
+  } catch (error) {
+    console.log('GET ASSIGNED PARENTS ERROR:', error)
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+
+
+
 module.exports = { createStaff,
    getMyStaff,
     getStaffDaycare, 
     updateStaff,
     toggleStaffStatus,
-   getAssignedChildren
+   getAssignedChildren,
+   getAssignedParents,
+   
+
    }

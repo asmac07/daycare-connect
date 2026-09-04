@@ -1,123 +1,270 @@
 
+
 require('dotenv').config()
 
-const http = require("http")
-const { Server } = require("socket.io")
+const http = require('http')
+const { Server } = require('socket.io')
 
 const app = require('./app')
 const connectDB = require('./config/db')
 const Message = require('./models/Message')
+const StaffMessage = require('./models/StaffMessage')
 
- // to track the online users
+// To track online users
 const onlineUsers = new Map()
 
 const PORT = process.env.PORT || 5000
 
 connectDB()
 
-// attach express app with http server
+// Attach Express app with HTTP server
 const server = http.createServer(app)
 
-   // creates a socket.io server nd it attach to the http server
-const io = new Server(server, { //configure socket.io
+// Create Socket.IO server and attach it to HTTP server
+const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"]
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST']
   }
 })
 
-// when a client connects to the socket.io , run this function
-// socket is a connection of specific user
+// When a client connects to Socket.IO
+io.on('connection', (socket) => {
 
-io.on("connection", (socket) => {  
+  console.log('User Connected:', socket.id)
 
-   console.log("User Connected:", socket.id) 
+  // User online
+  socket.on('userOnline', (userId) => {
 
-    socket.on("userOnline", (userId) => {
-      socket.userId = userId
-      onlineUsers.set(userId, socket.id)
-      console.log("User online:", userId)
-      socket.broadcast.emit("userStatus", { userId, status: "online" })
-    }) 
+    socket.userId = userId
 
-    socket.on("checkUserStatus", (userId) => {
-      const isOnline = onlineUsers.has(userId)
-      socket.emit("userStatus", { userId, status: isOnline ? "online" : "offline" })
+    onlineUsers.set(userId, socket.id)
+
+    console.log('User online:', userId)
+
+    socket.broadcast.emit('userStatus', {
+      userId,
+      status: 'online'
     })
+  })
 
-    socket.on("joinRoom", (roomId) => {
-      socket.join(roomId)
-      console.log(`Socket ${socket.id} joined room ${roomId}`)
+
+  // Check user online status
+  socket.on('checkUserStatus', (userId) => {
+
+    const isOnline = onlineUsers.has(userId)
+
+    socket.emit('userStatus', {
+      userId,
+      status: isOnline ? 'online' : 'offline'
     })
+  })
 
-    socket.on("typing", (data) => {
-      socket.to(data.roomId).emit("userTyping", {
-        userId: data.userId
+
+  // Join chat room
+  socket.on('joinRoom', (roomId) => {
+
+    socket.join(roomId)
+
+    console.log(`Socket ${socket.id} joined room ${roomId}`)
+  })
+
+
+  // Typing
+  socket.on('typing', (data) => {
+
+    socket.to(data.roomId).emit('userTyping', {
+      userId: data.userId
+    })
+  })
+
+
+  // Stop typing
+  socket.on('stopTyping', (data) => {
+
+    socket.to(data.roomId).emit('userStoppedTyping', {
+      userId: data.userId
+    })
+  })
+
+
+  // Send message
+  socket.on('sendMessage', async (data) => {
+
+    try {
+
+      const message = await Message.create({
+        daycare: data.daycare,
+        parent: data.parent,
+        sender: data.sender,
+        text: data.text
       })
-    })
 
-    socket.on("stopTyping", (data) => {
-      socket.to(data.roomId).emit("userStoppedTyping", {
-        userId: data.userId
+      // Send new message to room
+      io.to(data.roomId).emit('newMessage', message)
+
+
+      // Mark message as delivered
+      message.delivered = true
+
+      await message.save()
+
+
+      // Notify both users
+      io.to(data.roomId).emit('messageDelivered', {
+        messageId: message._id
       })
+
+    } catch (error) {
+
+      console.log('Send message error:', error)
+
+    }
+  })
+
+
+  // Message read
+  socket.on('messageRead', async (data) => {
+
+    try {
+
+      const message = await Message.findById(data.messageId)
+
+      if (!message) return
+
+
+      // Mark message as read
+      message.read = true
+      message.readAt = new Date()
+
+      await message.save()
+
+
+      // Notify both users
+      io.to(data.roomId).emit('messageRead', {
+        messageId: message._id
+      })
+
+    } catch (error) {
+
+      console.log('Message read error:', error)
+
+    }
+  })
+
+    // ================================
+  // Parent ↔ Staff Chat
+  // ================================
+
+  // Join staff chat room
+  socket.on('joinStaffRoom', (roomId) => {
+
+    socket.join(roomId)
+
+    console.log(`Socket ${socket.id} joined staff room ${roomId}`)
+  })
+
+
+  // Staff chat typing
+  socket.on('staffTyping', (data) => {
+
+    socket.to(data.roomId).emit('staffUserTyping', {
+      userId: data.userId
     })
 
-    socket.on("sendMessage", async (data) => {
-      try {
-        const message = await Message.create({
-          daycare: data.daycare,
-          parent: data.parent,
-          sender: data.sender,
-          text: data.text
-        })
-        
-        io.to(data.roomId).emit("newMessage", message) 
-        // Mark message as delivered
+  })
 
-        message.delivered = true
-         await message.save()
 
-         // Notify both users
-          io.to(data.roomId).emit("messageDelivered", { 
-            messageId: message._id 
-          })
-        } catch (error) {
-           console.log("Send message error:", error) 
-          } 
-        })
+  // Staff chat stop typing
+  socket.on('staffStopTyping', (data) => {
 
-    socket.on("messageRead", async (data) => {
-      try {
+    socket.to(data.roomId).emit('staffUserStoppedTyping', {
+      userId: data.userId
+    })
 
-        const message = await Message.findById(data.messageId)
+  })
 
-        if (!message) return
 
-        // Mark message as read
-        message.read = true
-        message.readAt = new Date()
+  // Send staff message
+  socket.on('sendStaffMessage', async (data) => {
 
-        await message.save()
+    try {
 
-        // Notify both users
-        io.to(data.roomId).emit("messageRead", {
-          messageId: message._id
-        })
+      const message = await StaffMessage.create({
+        daycare: data.daycare,
+        parent: data.parent,
+        staff: data.staff,
+        sender: data.sender,
+        text: data.text
+      })
 
-   } catch (error) {
-     console.log("Message read error:", error)
-  }
+      // Send message to staff chat room
+      io.to(data.roomId).emit('newStaffMessage', message)
+
+      // Mark as delivered
+      message.delivered = true
+
+      await message.save()
+
+      // Notify both users
+      io.to(data.roomId).emit('staffMessageDelivered', {
+        messageId: message._id
+      })
+
+    } catch (error) {
+
+      console.log('Send staff message error:', error)
+
+    }
+
+  })
+
+
+  // Staff chat message read
+  socket.on('staffMessageRead', async (data) => {
+
+    try {
+
+      const message = await StaffMessage.findById(data.messageId)
+
+      if (!message) return
+
+      message.read = true
+      message.readAt = new Date()
+
+      await message.save()
+
+      io.to(data.roomId).emit('staffMessageRead', {
+        messageId: message._id
+      })
+
+    } catch (error) {
+
+      console.log('Staff message read error:', error)
+
+    }
+
+  })
+
+  // User disconnected
+  socket.on('disconnect', () => {
+
+    console.log('User Disconnected:', socket.id)
+
+    if (socket.userId) {
+
+      onlineUsers.delete(socket.userId)
+
+      socket.broadcast.emit('userStatus', {
+        userId: socket.userId,
+        status: 'offline'
+      })
+    }
+  })
+
 })
 
 
-    socket.on("disconnect", () => {
-      console.log("User Disconnected:", socket.id)
-      if (socket.userId) {
-        onlineUsers.delete(socket.userId)
-        socket.broadcast.emit("userStatus", { userId: socket.userId, status: "offline" })
-      }
-    })
-})
 // Start server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)

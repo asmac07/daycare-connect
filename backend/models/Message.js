@@ -21,6 +21,8 @@ const messageSchema = new mongoose.Schema({
                      required: true
                      },
 
+                  
+
                 text: {
                      type: String, 
                      required: true
@@ -39,6 +41,6 @@ const messageSchema = new mongoose.Schema({
                readAt: {
                      type: Date, default: null }      
 
-}, { timestamps: true })
+          }, { timestamps: true })
 
 module.exports = mongoose.model('Message', messageSchema)
