@@ -52,7 +52,7 @@ const createOrder = async (req, res) => {
       }
 
       
-    if (enrollment.enrollmentStatus !== ENROLLMENT_STATUS.APPROVED) {
+    if (enrollment.enrollmentStatus !== ENROLLMENT_STATUS.APPROVED && !enrollment.isRenewal ) {
       return res.status(400).json({ 
         success: false,
          message: 'Enrollment must be approved before payment' 

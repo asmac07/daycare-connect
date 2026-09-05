@@ -11,7 +11,8 @@ const ParentSearch = () => {
   const [ageGroup, setAgeGroup] = useState('')
   const [packageType, setPackageType] = useState('')
   const [enrolling, setEnrolling] = useState(false)
-
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   // Daycare states
   const [daycares, setDaycares] = useState([])
   const [loading, setLoading] = useState(false)
@@ -128,6 +129,21 @@ const ParentSearch = () => {
       return
     }
 
+      if (!startDate) {
+        toast.warning('Please select a start date')
+        return
+      }
+
+      if (!endDate) {
+        toast.warning('Please select an end date')
+        return
+      }
+
+      if (new Date(endDate) < new Date(startDate)) {
+        toast.warning('End date cannot be before start date')
+        return
+      }
+
     try {
       setEnrolling(true)
 
@@ -135,7 +151,9 @@ const ParentSearch = () => {
         child: selectedChild,
         daycare: selectedDaycare._id,
         ageGroup,
-        package: packageType
+        package: packageType,
+        startDate,
+        endDate
       })
 
       toast.success(response.data.message || 'Enrollment request submitted successfully')
@@ -144,6 +162,8 @@ const ParentSearch = () => {
       setSelectedChild('')
       setAgeGroup('')
       setPackageType('')
+      setStartDate('')
+      setEndDate('')
 
     } catch (error) {
       console.error('Enrollment request error:', error)
@@ -360,6 +380,43 @@ const ParentSearch = () => {
                   <option value="weekly">1 Week - ₹1000</option>
                   <option value="monthly">1 Month - ₹5500</option>
                 </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                {/* Start Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-dc-ink mb-2">
+                    Start Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    disabled={enrolling}
+                    className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
+                  />
+                </div>
+
+
+                {/* End Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-dc-ink mb-2">
+                    End Date
+                  </label>
+
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate || new Date().toISOString().split('T')[0]}
+                    disabled={enrolling}
+                    className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
+                  />
+                </div>
+
               </div>
 
               <div className="flex justify-end gap-3 pt-3">

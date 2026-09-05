@@ -7,14 +7,24 @@ const { ENROLLMENT_STATUS, AGE_GROUPS, PACKAGE_PRICES } = require('../constants'
 
 const createEnrollmentRequest = async (req, res) => {
   try {
-    const { child, daycare, ageGroup, package: packageType } = req.body
+    const { child, daycare, ageGroup, package: packageType ,
+        startDate,
+        endDate
+             } = req.body
 
-    if (!child || !daycare || !ageGroup || !packageType) {
+    if (!child || !daycare || !ageGroup || !packageType || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
         message: 'Child, daycare, age group, and package are required'
       })
     }
+
+    if (new Date(endDate) < new Date(startDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'End date must be after start date'
+        })
+      }
 
     if (![AGE_GROUPS.INFANT, AGE_GROUPS.TODDLER, AGE_GROUPS.PRESCHOOL].includes(ageGroup)) {
       return res.status(400).json({
@@ -76,6 +86,8 @@ const createEnrollmentRequest = async (req, res) => {
       ageGroup,
       package: packageType,
       amount,
+      startDate,
+       endDate,
       enrollmentStatus: ENROLLMENT_STATUS.PENDING
     })
 
@@ -412,6 +424,122 @@ const getMyAssignedStaff = async (req, res) => {
   }
 }
 
+const renewEnrollment = async (req, res) => {
+  try {
+
+    const {
+      enrollmentId,
+      package: packageType,
+      startDate,
+      endDate
+    } = req.body
+
+    // 1. Validate required fields
+    if (!enrollmentId || !packageType || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment ID, package, start date and end date are required'
+      })
+    }
+
+    // 2. Validate package
+    let amount
+
+    if (packageType === 'daily') {
+      amount = 300
+    } else if (packageType === 'weekly') {
+      amount = 1000
+    } else if (packageType === 'monthly') {
+      amount = 5500
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid package'
+      })
+    }
+
+    // 3. Validate dates
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format'
+      })
+    }
+
+    if (end < start) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date must be after start date'
+      })
+    }
+
+    // 4. Find old enrollment
+    const oldEnrollment = await Enrollment.findOne({
+      _id: enrollmentId,
+      parent: req.user.id
+    })
+
+    if (!oldEnrollment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enrollment not found'
+      })
+    }
+
+    // 5. Only expired enrollment can be renewed
+   const today = new Date()
+        today.setHours(0, 0, 0, 0)
+
+        const enrollmentEndDate = new Date(oldEnrollment.endDate)
+        enrollmentEndDate.setHours(0, 0, 0, 0)
+
+        if (enrollmentEndDate >= today) {
+          return res.status(400).json({
+            success: false,
+            message: 'Enrollment has not expired yet'
+          })
+        }
+
+    // 6. Create new enrollment
+    const newEnrollment = await Enrollment.create({
+      child: oldEnrollment.child,
+      parent: oldEnrollment.parent,
+      daycare: oldEnrollment.daycare,
+      ageGroup: oldEnrollment.ageGroup,
+
+      package: packageType,
+      amount,
+
+      startDate: start,
+      endDate: end,
+
+      enrollmentStatus: 'approved',
+      paymentStatus: 'pending',
+
+      assignedStaff: null,
+      isRenewal: true
+    })
+
+    res.status(201).json({
+      success: true,
+      message: 'Renewal created successfully',
+      data: newEnrollment
+    })
+
+  } catch (error) {
+
+    console.error('RENEW ENROLLMENT ERROR:', error)
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 module.exports = {
   createEnrollmentRequest,
   approveEnrollment,
@@ -420,5 +548,6 @@ module.exports = {
   getDaycareEnrollments,
   assignStaff,
   deleteEnrollment,
-  getMyAssignedStaff
+  getMyAssignedStaff,
+  renewEnrollment
 }

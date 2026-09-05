@@ -13,6 +13,10 @@ const ParentEnrollments = () => {
 
   const [packageType, setPackageType] = useState('')
 
+  const [renewingEnrollment, setRenewingEnrollment] = useState(null)
+  const [renewStartDate, setRenewStartDate] = useState('')
+  const [renewEndDate, setRenewEndDate] = useState('')
+
   const fetchMyEnrollments = async () => {
     try {
       const response = await axiosInstance.get('/enrollment/getMyEnrollments')
@@ -126,6 +130,70 @@ const ParentEnrollments = () => {
   }
 }
 
+const handleRenewEnrollment = async () => {
+
+  if (!packageType) {
+    toast.error('Please select a package')
+    return
+  }
+
+  if (!renewStartDate || !renewEndDate) {
+    toast.error('Please select start and end dates')
+    return
+  }
+
+  if (new Date(renewEndDate) < new Date(renewStartDate)) {
+    toast.error('End date must be after start date')
+    return
+  }
+
+  try {
+
+    const response = await axiosInstance.post('/enrollment/renew', {
+      enrollmentId: renewingEnrollment._id,
+      package: packageType,
+      startDate: renewStartDate,
+      endDate: renewEndDate
+    })
+
+    const newEnrollment = response.data.data
+
+    toast.success('Renewal created. Proceeding to payment...')
+
+    setRenewingEnrollment(null)
+    setRenewStartDate('')
+    setRenewEndDate('')
+    setPackageType('')
+
+    // Open Razorpay for renewal
+    await handlePayment(newEnrollment)
+
+    // Refresh after renewal
+    fetchMyEnrollments()
+
+  } catch (error) {
+
+    console.error('Renewal error:', error)
+
+    toast.error(
+      error.response?.data?.message ||
+      'Failed to renew enrollment'
+    )
+  }
+}
+
+
+const isEnrollmentExpired = (endDate) => {
+    if (!endDate) return false
+
+    const today = new Date()
+    const expiryDate = new Date(endDate)
+
+    today.setHours(0, 0, 0, 0)
+    expiryDate.setHours(0, 0, 0, 0)
+
+    return expiryDate < today
+  }
 
 
 return (
@@ -234,7 +302,7 @@ return (
                         : en.package
                       : 'Not selected'}
                   </p>
-
+     
 
                   <p>
                     <strong>Amount:</strong>{' '}
@@ -243,6 +311,20 @@ return (
                       ₹{en.amount || 0}
                     </span>
                   </p>
+
+                   <p>
+                      <strong>Start Date:</strong>{' '}
+                      {en.startDate
+                        ? new Date(en.startDate).toLocaleDateString()
+                        : 'Not available'}
+                    </p>
+
+                    <p>
+                      <strong>End Date:</strong>{' '}
+                      {en.endDate
+                        ? new Date(en.endDate).toLocaleDateString()
+                        : 'Not available'}
+                    </p>
 
                 </div>
 
@@ -397,7 +479,56 @@ return (
                 </>
 
               )}
+{(en.enrollmentStatus === 'confirmed' ||
+  en.enrollmentStatus === 'expired') && (
 
+  <div className="mt-5 bg-amber-50 rounded-2xl p-4">
+
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+      <div>
+
+        <p className="font-semibold text-dc-ink">
+          {isEnrollmentExpired(en.endDate)
+            ? 'Enrollment Expired'
+            : 'Enrollment Renewal'}
+        </p>
+
+        <p className="text-xs text-dc-muted mt-1">
+          {isEnrollmentExpired(en.endDate)
+            ? "Your child's enrollment period has ended. You can renew it now."
+            : `Renewal will be available after ${new Date(
+                en.endDate
+              ).toLocaleDateString()}.`}
+        </p>
+
+      </div>
+
+      <button
+        type="button"
+        disabled={!isEnrollmentExpired(en.endDate)}
+        onClick={() => {
+          if (isEnrollmentExpired(en.endDate)) {
+            setRenewingEnrollment(en)
+            setPackageType('')
+            setRenewStartDate('')
+            setRenewEndDate('')
+          }
+        }}
+        className={`px-5 py-2 rounded-full font-semibold text-sm transition whitespace-nowrap ${
+          isEnrollmentExpired(en.endDate)
+            ? 'bg-dc-blue text-white hover:opacity-90'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+        }`}
+      >
+        Renew Enrollment
+      </button>
+
+    </div>
+
+  </div>
+
+)}
               
               {en.enrollmentStatus === 'confirmed' && (
 
@@ -501,7 +632,133 @@ return (
 
       )}
 
+
+
     </div>
+    {renewingEnrollment && (
+
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+
+    <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-xl">
+
+      <h2 className="text-xl font-semibold font-baloo text-dc-ink mb-2">
+        Renew Enrollment
+      </h2>
+
+      <p className="text-sm text-dc-muted mb-5">
+        Renew enrollment for{' '}
+        <span className="font-semibold text-dc-ink">
+          {renewingEnrollment.child?.name}
+        </span>
+      </p>
+
+
+      {/* Package */}
+
+      <div className="mb-4">
+
+        <label className="block text-sm font-semibold text-dc-ink mb-2">
+          Package
+        </label>
+
+        <select
+          value={packageType}
+          onChange={(e) => setPackageType(e.target.value)}
+          className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue"
+        >
+
+          <option value="">
+            Select Package
+          </option>
+
+          <option value="daily">
+            Daily - ₹300
+          </option>
+
+          <option value="weekly">
+            Weekly - ₹1000
+          </option>
+
+          <option value="monthly">
+            Monthly - ₹5500
+          </option>
+
+        </select>
+
+      </div>
+
+
+      {/* Dates */}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+
+        <div>
+
+          <label className="block text-sm font-semibold text-dc-ink mb-2">
+            Start Date
+          </label>
+
+          <input
+            type="date"
+            value={renewStartDate}
+            onChange={(e) => setRenewStartDate(e.target.value)}
+            min={new Date().toISOString().split('T')[0]}
+            className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue"
+          />
+
+        </div>
+
+
+        <div>
+
+          <label className="block text-sm font-semibold text-dc-ink mb-2">
+            End Date
+          </label>
+
+          <input
+            type="date"
+            value={renewEndDate}
+            onChange={(e) => setRenewEndDate(e.target.value)}
+            min={renewStartDate || new Date().toISOString().split('T')[0]}
+            className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue"
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* Buttons */}
+
+      <div className="flex justify-end gap-3">
+
+        <button
+          onClick={() => {
+            setRenewingEnrollment(null)
+            setPackageType('')
+            setRenewStartDate('')
+            setRenewEndDate('')
+          }}
+          className="bg-white text-dc-muted px-5 py-2 rounded-full font-semibold text-sm border-[1.5px] border-dc-border hover:bg-dc-hover transition"
+        >
+          Cancel
+        </button>
+          <button
+            type="button"
+            onClick={handleRenewEnrollment}
+            className="bg-dc-blue text-white px-5 py-2 rounded-full font-semibold text-sm hover:opacity-90 transition"
+          >
+            Continue
+          </button>
+       
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
 
   </div>
 

@@ -42,7 +42,7 @@ const enrollmentSchema = new mongoose.Schema({
 
             enrollmentStatus: {
                 type: String,
-                enum: ['pending', 'approved', 'rejected', 'confirmed'],
+                enum: ['pending', 'approved', 'rejected', 'confirmed','expired'],
                 default: 'pending'
             },
 
@@ -61,8 +61,22 @@ const enrollmentSchema = new mongoose.Schema({
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'User',
                     default: null
-            }
-                        
+            },
+
+            startDate: {
+                    type: Date,
+                    default: null
+                },
+
+                endDate: {
+                    type: Date,
+                    default: null
+                },
+                isRenewal: {
+                type: Boolean,
+                default: false
+                },
+                                        
             }, { timestamps: true })
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema)

@@ -361,7 +361,7 @@ const rescheduleToNewSlot = async (req, res) => {
     const { newSlotId } = req.body
     const oldSlotId = req.params.id
 
-    // 1. Check new slot ID
+    
     if (!newSlotId) {
       return res.status(400).json({
         success: false,
@@ -369,7 +369,7 @@ const rescheduleToNewSlot = async (req, res) => {
       })
     }
 
-    // 2. Prevent selecting the same slot
+    
     if (oldSlotId === newSlotId) {
       return res.status(400).json({
         success: false,
@@ -377,10 +377,10 @@ const rescheduleToNewSlot = async (req, res) => {
       })
     }
 
-    // 3. Start transaction
+    
     session.startTransaction()
 
-    // 4. Find the old booking
+    
     const oldSlot = await VisitSlot.findOne({
       _id: oldSlotId,
       bookedBy: req.user.id,
@@ -396,7 +396,7 @@ const rescheduleToNewSlot = async (req, res) => {
       })
     }
 
-    // 5. Find the new slot
+    
     const newSlot = await VisitSlot.findOne({
       _id: newSlotId,
       daycare: oldSlot.daycare,
@@ -412,23 +412,23 @@ const rescheduleToNewSlot = async (req, res) => {
       })
     }
 
-    // 6. Save Parent and Child IDs
+    //  Save Parent and Child IDs
     const parentId = oldSlot.bookedBy
     const childId = oldSlot.child
 
-    // 7. mark old slot as rescheduled
+    //  mark old slot as rescheduled
     oldSlot.status = VISIT_SLOT_STATUS.AVAILABLE
     oldSlot.bookedBy = null
     oldSlot.child = null
     oldSlot.bookedAt = null
     await oldSlot.save({ session })
 
-    // 8. Book new slot
+    //  Book new slot
     newSlot.status = VISIT_SLOT_STATUS.BOOKED
     newSlot.bookedBy = parentId
     newSlot.child = childId
     newSlot.bookedAt = new Date()
-    
+
     await newSlot.save({ session })
 
     // 9. Commit transaction

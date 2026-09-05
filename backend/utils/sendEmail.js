@@ -9,15 +9,7 @@ const transporter = nodemailer.createTransport({
   }
 })
 
-// const sendEmail = async (to, subject, html) => {
-//     console.log(to)
-//   await transporter.sendMail({
-//     from: `"DayCare Connect" <${process.env.EMAIL_USER}>`,
-//     to,
-//     subject,
-//     html
-//   })
-// }
+
 
 const sendEmail = async (to, subject, html) => {
   try {

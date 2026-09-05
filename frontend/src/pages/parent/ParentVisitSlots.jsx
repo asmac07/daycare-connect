@@ -21,15 +21,13 @@ const ParentVisitSlots = () => {
 
   const [showCancelModal, setShowCancelModal] = useState(false)
 
-  // Reschedule states
+  
   const [showRescheduleModal, setShowRescheduleModal] = useState(false)
   const [availableSlots, setAvailableSlots] = useState([])
   const [selectedNewSlot, setSelectedNewSlot] = useState('')
 
 
-  // =========================
-  // FETCH DAYCARES
-  // =========================
+  
   const fetchDaycares = async () => {
     try {
       const response = await axiosInstance.get('/daycare/approved')
@@ -40,9 +38,6 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // FETCH CHILDREN
-  // =========================
   const fetchChildren = async () => {
     try {
       const response = await axiosInstance.get('/child/myChildren')
@@ -53,9 +48,7 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // FETCH AVAILABLE SLOTS
-  // =========================
+  
   const fetchSlots = async (daycareId) => {
     try {
       const response = await axiosInstance.get(
@@ -86,9 +79,6 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // FETCH MY BOOKINGS
-  // =========================
   const fetchMyBookings = async () => {
     try {
       const response = await axiosInstance.get('/visitSlots/myBookings')
@@ -121,9 +111,6 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // BOOK SLOT
-  // =========================
   const handleBook = async () => {
 
     if (!selectedSlot) return
@@ -163,9 +150,6 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // CANCEL BOOKING
-  // =========================
   const handleCancelBooking = async () => {
 
     if (!selectedBooking) return
@@ -200,9 +184,7 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // OPEN RESCHEDULE MODAL
-  // =========================
+  
   const openRescheduleModal = async () => {
 
     if (!selectedBooking) return
@@ -217,7 +199,7 @@ const ParentVisitSlots = () => {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      // Only future + available slots
+      // Only future and available slots
       const futureAvailableSlots = response.data.data.filter((slot) => {
 
         const slotDate = new Date(slot.date)
@@ -254,9 +236,7 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // CONFIRM RESCHEDULE
-  // =========================
+  
   const handleReschedule = async () => {
 
     if (!selectedNewSlot) {
@@ -283,10 +263,7 @@ const ParentVisitSlots = () => {
       setSelectedBooking(null)
       setSelectedNewSlot('')
 
-      // IMPORTANT:
-      // This was fetchBookings() before.
-      // Your actual function name is fetchMyBookings().
-      fetchMyBookings()
+      
 
       if (selectedDaycare) {
         fetchSlots(selectedDaycare)
@@ -304,9 +281,6 @@ const ParentVisitSlots = () => {
   }
 
 
-  // =========================
-  // INITIAL LOAD
-  // =========================
   useEffect(() => {
 
     fetchDaycares()
@@ -316,9 +290,7 @@ const ParentVisitSlots = () => {
   }, [])
 
 
-  // =========================
-  // DAYCARE CHANGE
-  // =========================
+  
   useEffect(() => {
 
     if (selectedDaycare) {
@@ -347,9 +319,7 @@ const ParentVisitSlots = () => {
         </div>
 
 
-        {/* =====================================================
-            AVAILABLE SLOTS
-        ===================================================== */}
+      
 
         <div className="bg-white/90 backdrop-blur-sm rounded-[2rem] p-6 mb-8 shadow-[0_20px_50px_-12px_rgba(74,144,164,0.15)] border border-white/60">
 

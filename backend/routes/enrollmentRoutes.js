@@ -12,7 +12,7 @@ const {
   getDaycareEnrollments,
   assignStaff,
   deleteEnrollment,
-  getMyAssignedStaff
+  getMyAssignedStaff, renewEnrollment
 } = require('../controllers/enrollmentController')
 
 const { protect } = require('../middlewares/authMiddleware')
@@ -34,6 +34,8 @@ router.put('/assignStaff/:id', protect, assignStaff)
 router.delete('/delete/:id',protect,deleteEnrollment)
 
 router.get( '/my-assigned-staff', protect, authorizeRoles('parent'), getMyAssignedStaff)
+
+router.post('/renew', protect, authorizeRoles('parent'), renewEnrollment)
 
 module.exports = router
 

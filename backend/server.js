@@ -10,12 +10,16 @@ const connectDB = require('./config/db')
 const Message = require('./models/Message')
 const StaffMessage = require('./models/StaffMessage')
 
+const expireEnrollments = require('./jobs/enrollmentExpiryJob')
+
 // To track online users
 const onlineUsers = new Map()
 
 const PORT = process.env.PORT || 5000
 
 connectDB()
+
+expireEnrollments()
 
 // Attach Express app with HTTP server
 const server = http.createServer(app)
@@ -152,9 +156,9 @@ io.on('connection', (socket) => {
     }
   })
 
-    // ================================
+    
   // Parent ↔ Staff Chat
-  // ================================
+
 
   // Join staff chat room
   socket.on('joinStaffRoom', (roomId) => {

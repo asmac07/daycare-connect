@@ -50,7 +50,7 @@ const withdrawMoney = async (req, res) => {
   try {
     const { amount } = req.body
 
-    // 1. Validate amount
+    //validate amount
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -61,26 +61,27 @@ const withdrawMoney = async (req, res) => {
     // Start transaction
     session.startTransaction()
 
-    // 2. Find owner's wallet
+    
     const wallet = await Wallet.findOne({
       owner: req.user.id
-    }).session(session)
+    }).session(session) //this db oprtion is tha part of current trasacrion
 
     if (!wallet) {
       throw new Error('Wallet not found')
     }
 
-    // 3. Check available balance
+
     if (amount > wallet.balance) {
       throw new Error('Insufficient wallet balance')
     }
 
-    // 4. Deduct amount
+    
     wallet.balance -= Number(amount)
 
+    // wallet updated is included this trasction
     await wallet.save({ session })
 
-    // 5. Create withdrawal transaction
+    
     await WalletTransaction.create(
       [
         {
@@ -95,7 +96,7 @@ const withdrawMoney = async (req, res) => {
       { session }
     )
 
-    // 6. Commit transaction
+    //confrmation(trasnsaction succed)
     await session.commitTransaction()
 
     res.status(200).json({
