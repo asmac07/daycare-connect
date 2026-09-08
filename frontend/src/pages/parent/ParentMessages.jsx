@@ -14,46 +14,31 @@ const ParentMessages = () => {
 
 
   const fetchDaycares = async () => {
+  try {
+    const response = await axiosInstance.get(
+      '/enrollment/getMyEnrollments'
+    )
 
-    try {
+    const enrollments = response.data.data
 
-      const response = await axiosInstance.get(
-        '/enrollment/getMyEnrollments'
-      )
+    const uniqueDaycares = []
+    const seenIds = new Set()
 
-      const enrollments = response.data.data
+    enrollments.forEach((en) => {
+      const daycare = en.daycare
 
-      const uniqueDaycares = []
-      const seenIds = new Set()
+      if (daycare && !seenIds.has(daycare._id)) {
+        seenIds.add(daycare._id)
+        uniqueDaycares.push(daycare)
+      }
+    })
 
+    setDaycares(uniqueDaycares)
 
-      enrollments.forEach((en) => {
-
-        if (
-          en.daycare &&
-          !seenIds.has(en.daycare._id)
-        ) {
-
-          seenIds.add(en.daycare._id)
-
-          uniqueDaycares.push(en.daycare)
-
-        }
-
-      })
-
-
-      setDaycares(uniqueDaycares)
-
-    } catch (error) {
-
-      console.log(error)
-
-    }
-
+  } catch (error) {
+    console.error('Fetch daycares error:', error)
   }
-
-
+}
   useEffect(() => {
 
     fetchDaycares()

@@ -15,57 +15,41 @@ const OwnerMessages = () => {
 
 
   const fetchParents = async () => {
+  try {
+    const response = await axiosInstance.get(
+      '/enrollment/getDaycareEnrollments'
+    )
 
-    try {
+    const enrollments = response.data.data
 
-      const response = await axiosInstance.get(
-        '/enrollment/getDaycareEnrollments'
-      )
+    const uniqueParents = []
+    const seenIds = new Set()
 
-      const enrollments = response.data.data
+    enrollments.forEach((en) => {
+      if (
+        en.parent &&
+        !seenIds.has(en.parent._id)
+      ) {
+        seenIds.add(en.parent._id)
+        uniqueParents.push(en.parent)
+      }
+    })
 
-      const uniqueParents = []
-      const seenIds = new Set()
+    setParents(uniqueParents)
 
+    // Get daycare ID from enrollment
+    if (enrollments.length > 0 && enrollments[0].daycare) {
+      const id =
+        enrollments[0].daycare._id ||
+        enrollments[0].daycare
 
-      enrollments.forEach((en) => {
-
-        if (
-          en.parent &&
-          !seenIds.has(en.parent._id)
-        ) {
-
-          seenIds.add(en.parent._id)
-
-          uniqueParents.push(en.parent)
-
-        }
-
-
-        if (
-          en.daycare &&
-          !daycareId
-        ) {
-
-          setDaycareId(
-            en.daycare._id || en.daycare
-          )
-
-        }
-
-      })
-
-
-      setParents(uniqueParents)
-
-    } catch (error) {
-
-      console.log(error)
-
+      setDaycareId(id)
     }
 
+  } catch (error) {
+    console.error('Fetch parents error:', error)
   }
-
+}
 
   useEffect(() => {
 

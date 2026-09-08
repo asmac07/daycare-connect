@@ -1,64 +1,10 @@
 
-// import { Outlet, Link, useNavigate } from 'react-router-dom'
-// import { useSelector, useDispatch } from 'react-redux'
-// import { logout } from '../store/slices/authSlice'
-// import { ROUTES } from '../constants'
-
-// const Layout = () => {
-//   const { user, isAuthenticated } = useSelector((state) => state.auth)
-//   const dispatch = useDispatch()
-//   const navigate = useNavigate()
-
-//   const handleLogout = () => {
-//     dispatch(logout())
-//     navigate(ROUTES.LOGIN)
-//   }
-
-//   return (
-//     <div>
-//       <nav className="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-//         <Link to={ROUTES.DASHBOARD} className="text-xl font-bold text-blue-600">
-//           DayCare Connect
-//         </Link>
-
-//         <div className="flex items-center gap-4">
-//           {isAuthenticated ? (
-//             <>
-//               <span className="text-gray-600 text-sm">{user?.name}</span>
-//               <button
-//                 onClick={handleLogout}
-//                 className="bg-gray-200 text-gray-700 px-3 py-1.5 rounded hover:bg-gray-300 transition text-sm"
-//               >
-//                 Logout
-//               </button>
-//             </>
-//           ) : (
-//             <>
-//               <Link to={ROUTES.LOGIN} className="text-sm text-gray-600 hover:text-blue-600">
-//                 Login
-//               </Link>
-//               <Link
-//                 to={ROUTES.REGISTER}
-//                 className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition text-sm"
-//               >
-//                 Sign Up
-//               </Link>
-//             </>
-//           )}
-//         </div>
-//       </nav>
-
-//       <Outlet />
-//     </div>
-//   )
-// }
-
-// export default Layout
 
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logout } from '../store/slices/authSlice'
 import { ROUTES } from '../constants'
+import axiosInstance from '../api/axiosInstance'
 
 const Layout = () => {
   const { user, isAuthenticated } = useSelector((state) => state.auth)
@@ -76,7 +22,7 @@ const Layout = () => {
     console.log('Logout error:', error)
 
   } finally {
-
+     window.dispatchEvent(new Event('logout'))
     dispatch(logout())
 
     navigate('/login')

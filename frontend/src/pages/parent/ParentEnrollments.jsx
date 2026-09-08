@@ -34,17 +34,19 @@ const ParentEnrollments = () => {
   const [renewEndDate, setRenewEndDate] = useState('')
 
   const fetchMyEnrollments = async () => {
-    try {
-      const response = await axiosInstance.get(
-        `/enrollment/getMyEnrollments?page=${page}&limit=${limit}`
-      )
-      setEnrollments(response.data.data)
-      setTotalPages(response.data.pagination.totalPages)
-    } catch (error) {
-      console.log(error)
-      toast.error(error.response?.data?.message || 'Failed to load enrollments')
-    }
+  try {
+    const response = await axiosInstance.get(
+      `/enrollment/getMyEnrollments?page=${page}&limit=${limit}`
+    )
+
+    setEnrollments(response.data.data)
+    setTotalPages(response.data.totalPages)
+
+  } catch (error) {
+    console.log(error)
+    toast.error(error.response?.data?.message || 'Failed to load enrollments')
   }
+}
 
   useEffect(() => {
     fetchMyEnrollments()

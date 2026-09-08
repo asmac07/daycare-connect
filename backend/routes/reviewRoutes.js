@@ -4,7 +4,7 @@ const { addReview, getReviewsByDaycare } = require('../controllers/reviewControl
 const { protect } = require('../middlewares/authMiddleware')
 const checkBlockedUser = require('../middlewares/checkBlockedUser')
 
-router.post('/add', protect, checkBlockedUser, addReview)
-router.get('/daycare/:daycareId', checkBlockedUser,getReviewsByDaycare)
+router.post('/add', protect,  addReview)
+router.get('/daycare/:daycareId', getReviewsByDaycare)
 
 module.exports = router

@@ -5,7 +5,7 @@ const { createOrder , verifyPayment } = require('../controllers/paymentControlle
 const { protect } = require('../middlewares/authMiddleware')
 const checkBlockedUser = require('../middlewares/checkBlockedUser')
 
-router.post('/createOrder', protect,checkBlockedUser , createOrder)
-router.post('/verifyPayment', protect,checkBlockedUser, verifyPayment )
+router.post('/createOrder', protect, createOrder)
+router.post('/verifyPayment', protect, verifyPayment )
 
 module.exports = router

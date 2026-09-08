@@ -20,24 +20,24 @@ const { protect } = require('../middlewares/authMiddleware')
 const { authorizeRoles } = require('../middlewares/roleMiddleware')
 const checkBlockedUser = require('../middlewares/checkBlockedUser')
 
-router.post( '/enrollmentRequest', protect, checkBlockedUser, createEnrollmentRequest)
+router.post( '/enrollmentRequest', protect, createEnrollmentRequest)
 
-router.put('/approve/:id',protect,  authorizeRoles('owner'), checkBlockedUser,approveEnrollment)
+router.put('/approve/:id',protect,  authorizeRoles('owner'), approveEnrollment)
 
-router.put('/reject/:id',protect, authorizeRoles('owner'), checkBlockedUser, rejectEnrollment)
+router.put('/reject/:id',protect, authorizeRoles('owner'), rejectEnrollment)
 
-router.get('/getMyEnrollments',protect, checkBlockedUser,getMyEnrollments)
+router.get('/getMyEnrollments',protect,getMyEnrollments)
 
-router.get('/getDaycareEnrollments',protect, checkBlockedUser,getDaycareEnrollments)
+router.get('/getDaycareEnrollments',protect, getDaycareEnrollments)
 
-router.put('/assignStaff/:id', protect,  checkBlockedUser,assignStaff)
+router.put('/assignStaff/:id', protect, assignStaff)
 
-router.delete('/delete/:id',protect, checkBlockedUser,deleteEnrollment)
+router.delete('/delete/:id',protect, deleteEnrollment)
 
-router.get( '/my-assigned-staff', protect, authorizeRoles('parent'), checkBlockedUser, getMyAssignedStaff)
+router.get( '/my-assigned-staff', protect, authorizeRoles('parent'),  getMyAssignedStaff)
 
-router.post('/renew', protect, authorizeRoles('parent'),  checkBlockedUser,renewEnrollment)
+router.post('/renew', protect, authorizeRoles('parent'), renewEnrollment)
 
-router.get( '/check-availability',protect, authorizeRoles('parent'), checkBlockedUser,checkEnrollmentAvailability)
+router.get( '/check-availability',protect, authorizeRoles('parent'), checkEnrollmentAvailability)
 module.exports = router
 

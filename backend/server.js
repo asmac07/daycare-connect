@@ -12,6 +12,9 @@ const StaffMessage = require('./models/StaffMessage')
 
 const expireEnrollments = require('./jobs/enrollmentExpiryJob')
 
+const jwt = require('jsonwebtoken')
+const User = require('./models/User')
+
 // To track online users
 const onlineUsers = new Map()
 
@@ -24,11 +27,52 @@ expireEnrollments()
 // Attach Express app with HTTP server
 const server = http.createServer(app)
 
+
 // Create Socket.IO server and attach it to HTTP server
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: process.env.CLIENT_URL,
     methods: ['GET', 'POST']
+  }
+})
+
+// Socket.IO authentication middleware
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth.token
+
+    if (!token) {
+      return next(new Error('Authentication required'))
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    )
+
+    const user = await User.findById(decoded.id).select(
+      '_id role isBlocked'
+    )
+
+    if (!user) {
+      return next(new Error('User not found'))
+    }
+
+    if (user.isBlocked) {
+      return next(new Error('User is blocked'))
+    }
+
+    socket.user = user
+
+    next()
+
+  } catch (error) {
+    console.log(
+      'Socket authentication error:',
+      error.message
+    )
+
+    next(new Error('Invalid authentication token'))
   }
 })
 
@@ -36,21 +80,25 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
 
   console.log('User Connected:', socket.id)
+  console.log('Authenticated user:', String(socket.user._id))
+  console.log('Role:', socket.user.role)
 
   // User online
-  socket.on('userOnline', (userId) => {
+  socket.on('userOnline', () => {
 
-    socket.userId = userId
+  const userId = String(socket.user._id)
 
-    onlineUsers.set(userId, socket.id)
+  socket.userId = userId
 
-    console.log('User online:', userId)
+  onlineUsers.set(userId, socket.id)
 
-    socket.broadcast.emit('userStatus', {
-      userId,
-      status: 'online'
-    })
+  console.log('User online:', userId)
+
+  socket.broadcast.emit('userStatus', {
+    userId,
+    status: 'online'
   })
+})
 
 
   // Check user online status
@@ -267,6 +315,7 @@ io.on('connection', (socket) => {
   })
 
 })
+
 
 
 // Start server

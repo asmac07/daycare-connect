@@ -438,48 +438,47 @@ const deleteEnrollment = async (req, res) => {
   }
 }
 
-// parent
+
+
+// // parent
 const getMyEnrollments = async (req, res) => {
   try {
+    const pageNumber = Number(req.query.page) || 1
+    const limitNumber = Number(req.query.limit) || 6
+    const skip = (pageNumber - 1) * limitNumber
 
-    const page = Number(req.query.page) || 1
-    const limit = Number(req.query.limit) || 6
+    console.log('Parent ID:', req.user.id)
 
-    const skip = (page - 1) * limit
-
-    // Get total number of enrollments
     const totalEnrollments = await Enrollment.countDocuments({
       parent: req.user.id
     })
 
-    // Get enrollments for current page
     const enrollments = await Enrollment.find({
       parent: req.user.id
     })
       .populate('child')
-      .populate('daycare', 'name address owner')
-      .populate('assignedStaff', 'name email designation')
+      .populate({
+        path: 'daycare',
+        select: 'name owner',
+        populate: {
+          path: 'owner',
+          select: 'name email'
+        }
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-
-    const totalPages = Math.ceil(
-      totalEnrollments / limit
-    )
+      .limit(limitNumber)
 
     res.status(200).json({
       success: true,
-      data: enrollments,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalEnrollments,
-        limit
-      }
+      page: pageNumber,
+      limit: limitNumber,
+      total: totalEnrollments,
+      totalPages: Math.ceil(totalEnrollments / limitNumber),
+      data: enrollments
     })
 
   } catch (error) {
-
     console.error('GET MY ENROLLMENTS ERROR:', error)
 
     res.status(500).json({
@@ -492,9 +491,16 @@ const getMyEnrollments = async (req, res) => {
 const getDaycareEnrollments = async (req, res) => {
   try {
     const { page = 1, limit = 5 } = req.query
-    const skip = (Number(page) - 1) * Number(limit)
 
-    const daycare = await Daycare.findOne({ owner: req.user.id })
+    const pageNumber = Number(page)
+    const limitNumber = Number(limit)
+
+    const skip = (pageNumber - 1) * limitNumber
+
+    // Find daycare owned by current owner
+    const daycare = await Daycare.findOne({
+      owner: req.user.id
+    })
 
     if (!daycare) {
       return res.status(404).json({
@@ -503,24 +509,41 @@ const getDaycareEnrollments = async (req, res) => {
       })
     }
 
-    const total = await Enrollment.countDocuments({ daycare: daycare._id })
+    // Total enrollments
+    const total = await Enrollment.countDocuments({
+      daycare: daycare._id
+    })
 
-    const enrollments = await Enrollment.find({ daycare: daycare._id })
-      .populate('child', 'name dateOfBirth gender')
-      .populate('parent', 'name email phone')
-      .populate('assignedStaff', 'name email')
+    // Get enrollments
+    const enrollments = await Enrollment.find({
+      daycare: daycare._id
+    })
+      .populate('parent', 'name email')
+      .populate({
+        path: 'daycare',
+        select: 'name owner',
+        populate: {
+          path: 'owner',
+          select: 'name email'
+        }
+      })
+      .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(Number(limit))
-
+      .limit(limitNumber)
+      .populate('child', 'name dateOfBirth gender')
+      
     res.status(200).json({
       success: true,
-      page: Number(page),
-      limit: Number(limit),
+      page: pageNumber,
+      limit: limitNumber,
       total,
+      totalPages: Math.ceil(total / limitNumber),
       data: enrollments
     })
 
   } catch (error) {
+    console.error('GET DAYCARE ENROLLMENTS ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: error.message

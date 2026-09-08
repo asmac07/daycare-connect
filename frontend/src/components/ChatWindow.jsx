@@ -5,7 +5,12 @@ import { io } from 'socket.io-client'
 import axiosInstance from '../api/axiosInstance'
 import { useSelector } from 'react-redux'
 
-const socket = io('http://localhost:5000')
+
+const socket = io(import.meta.env.VITE_SOCKET_URL, {
+  auth: {
+    token: localStorage.getItem('token')
+  }
+})
 
 const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
   const { user } = useSelector((state) => state.auth)
@@ -31,7 +36,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
 
   useEffect(() => {
 
-    socket.emit('userOnline', user.id)
+    socket.emit('userOnline')
 
     axiosInstance
       .get(`/messages/${daycareId}/${parentId}`)

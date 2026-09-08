@@ -5,7 +5,20 @@ import axiosInstance from '../api/axiosInstance'
 import { useSelector } from 'react-redux'
 import { Baby, School } from 'lucide-react'
 
-const socket = io('http://localhost:5000')
+const socket = io(import.meta.env.VITE_SOCKET_URL, {
+  auth: {
+    token: localStorage.getItem('token')
+  }
+})
+
+socket.on('connect', () => {
+  console.log('Socket connected:', socket.id)
+})
+
+socket.on('connect_error', (error) => {
+  console.error('Socket connection error:', error.message)
+})
+
 
 const StaffChatWindow = ({
   daycareId,
@@ -34,7 +47,7 @@ const StaffChatWindow = ({
       : String(parentId)
 
   useEffect(() => {
-    socket.emit('userOnline', user.id)
+    socket.emit('userOnline')
 
     axiosInstance
       .get(`/staff-messages/${daycareId}/${parentId}/${staffId}`)
@@ -124,7 +137,7 @@ const StaffChatWindow = ({
       daycare: daycareId,
       parent: parentId,
       staff: staffId,
-      sender: user.id,
+      
       text: text.trim()
     })
 
