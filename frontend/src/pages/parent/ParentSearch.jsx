@@ -26,6 +26,10 @@ const ParentSearch = () => {
   // Location
   const [location, setLocation] = useState(null)
 
+  const [availability, setAvailability] = useState(null)
+  const [availabilityError, setAvailabilityError] = useState('')
+  const [checkingAvailability, setCheckingAvailability] = useState(false)
+
   const getUserLocation = () => {
     if (!navigator.geolocation) {
       toast.error('Geolocation is not supported by your browser')
@@ -94,20 +98,29 @@ const ParentSearch = () => {
     return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
   }
 
-  const handleEnroll = (daycare) => {
-    setSelectedDaycare(daycare)
-    setSelectedChild('')
-    setAgeGroup('')
-    setPackageType('')
-  }
+ const handleEnroll = (daycare) => {
+  setSelectedDaycare(daycare)
+  setSelectedChild('')
+  setAgeGroup('')
+  setPackageType('')
+  setStartDate('')
+  setEndDate('')
+  setAvailability(null)
+  setAvailabilityError('')
+}
 
-  const closeEnrollmentModal = () => {
-    if (enrolling) return
-    setSelectedDaycare(null)
-    setSelectedChild('')
-    setAgeGroup('')
-    setPackageType('')
-  }
+ const closeEnrollmentModal = () => {
+  if (enrolling) return
+
+  setSelectedDaycare(null)
+  setSelectedChild('')
+  setAgeGroup('')
+  setPackageType('')
+  setStartDate('')
+  setEndDate('')
+  setAvailability(null)
+  setAvailabilityError('')
+}
 
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault()
@@ -165,13 +178,66 @@ const ParentSearch = () => {
       setStartDate('')
       setEndDate('')
 
-    } catch (error) {
-      console.error('Enrollment request error:', error)
-      toast.error(error.response?.data?.message || 'Failed to submit enrollment request')
-    } finally {
+    } 
+    catch (error) {
+          console.error('Enrollment request error:', error)
+
+          const message =
+            error.response?.data?.message ||
+            'Failed to submit enrollment request'
+
+          setAvailabilityError(message)
+
+          toast.error(message)
+        }
+
+    finally {
       setEnrolling(false)
     }
   }
+
+  const checkAvailability = async (start, end) => {
+  if (
+    !selectedDaycare ||
+    !start ||
+    !end ||
+    new Date(end) < new Date(start)
+  ) {
+    setAvailability(null)
+    return
+  }
+
+  try {
+    setCheckingAvailability(true)
+    setAvailabilityError('')
+
+    const response = await axiosInstance.get(
+      '/enrollment/check-availability',
+      {
+        params: {
+          daycareId: selectedDaycare._id,
+          startDate: start,
+          endDate: end
+        }
+      }
+    )
+
+    setAvailability(response.data)
+
+  } catch (error) {
+    console.error('Availability check error:', error)
+
+    const message =
+      error.response?.data?.message ||
+      'Unable to check seat availability'
+
+    setAvailability(null)
+    setAvailabilityError(message)
+
+  } finally {
+    setCheckingAvailability(false)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-dc-mist via-dc-mist-2 to-dc-mist p-8 font-nunito">
@@ -324,9 +390,25 @@ const ParentSearch = () => {
               <p className="text-sm mt-1">
                 <strong>Rating:</strong> ⭐ {selectedDaycare.averageRating ? Number(selectedDaycare.averageRating).toFixed(1) : 'No rating'}
               </p>
-              <p className="text-sm mt-1">
-                <strong>Available Seats:</strong> {selectedDaycare.availableSeats ?? selectedDaycare.seatsAvailable ?? 'Not available'}
-              </p>
+
+           <p className="text-sm mt-1">
+              <strong>Total Capacity:</strong>{' '}
+              {selectedDaycare.seatCapacity ?? 'Not available'}
+            </p>
+
+           {checkingAvailability && (
+                <p className="text-sm mt-2 text-dc-muted">
+                  Checking seat availability...
+                </p>
+              )}
+
+              {!checkingAvailability && availability && (
+                <p className="text-sm mt-2">
+                  <strong>Available Seats:</strong>{' '}
+                  {availability.availableSeats}
+                </p>
+              )}
+
             </div>
 
             <form onSubmit={handleEnrollmentSubmit} className="space-y-4">
@@ -390,10 +472,20 @@ const ParentSearch = () => {
                     Start Date
                   </label>
 
-                  <input
+                 <input
                     type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                   onChange={(e) => {
+                          const value = e.target.value
+                          setStartDate(value)
+                          setAvailabilityError('')
+
+                          if (endDate) {
+                            checkAvailability(value, endDate)
+                          } else {
+                            setAvailability(null)
+                          }
+                        }}
                     min={new Date().toISOString().split('T')[0]}
                     disabled={enrolling}
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
@@ -407,10 +499,20 @@ const ParentSearch = () => {
                     End Date
                   </label>
 
-                  <input
+                 <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                        onChange={(e) => {
+                              const value = e.target.value
+                              setEndDate(value)
+                              setAvailabilityError('')
+
+                              if (startDate) {
+                                checkAvailability(startDate, value)
+                              } else {
+                                setAvailability(null)
+                              }
+                            }}
                     min={startDate || new Date().toISOString().split('T')[0]}
                     disabled={enrolling}
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
@@ -418,6 +520,28 @@ const ParentSearch = () => {
                 </div>
 
               </div>
+
+              {availabilityError && (
+                <div className="bg-dc-error-bg border border-dc-error-text/20 rounded-2xl p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg">⚠️</span>
+
+                    <div>
+                      <p className="text-sm font-semibold text-dc-error-text">
+                        Seats are not available for the selected dates
+                      </p>
+
+                      <p className="text-xs text-dc-muted mt-1">
+                        {availabilityError}
+                      </p>
+
+                      <p className="text-xs text-dc-muted mt-1">
+                        Please choose a different date range.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-3">
                 <button
@@ -431,7 +555,12 @@ const ParentSearch = () => {
 
                 <button
                   type="submit"
-                  disabled={enrolling || children.length === 0}
+                  disabled={
+                    enrolling ||
+                    children.length === 0 ||
+                    !availability ||
+                    !availability.isAvailable
+                  }
                   className="px-6 py-2 rounded-full bg-gradient-to-br from-dc-blue to-dc-green text-white text-sm font-semibold disabled:opacity-50 transition"
                 >
                   {enrolling ? 'Submitting...' : 'Submit Enrollment'}

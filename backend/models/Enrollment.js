@@ -46,7 +46,7 @@ const enrollmentSchema = new mongoose.Schema({
                 default: 'pending'
             },
 
-              reason: {
+            reason: {
                 type: String,
                 default: null
             },
@@ -68,11 +68,11 @@ const enrollmentSchema = new mongoose.Schema({
                     default: null
                 },
 
-                endDate: {
+             endDate: {
                     type: Date,
                     default: null
                 },
-                isRenewal: {
+            isRenewal: {
                 type: Boolean,
                 default: false
                 },

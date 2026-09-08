@@ -7,32 +7,65 @@ const { ENROLLMENT_STATUS, AGE_GROUPS, PACKAGE_PRICES } = require('../constants'
 
 const createEnrollmentRequest = async (req, res) => {
   try {
-    const { child, daycare, ageGroup, package: packageType ,
-        startDate,
-        endDate
-             } = req.body
+    const {
+      child,
+      daycare,
+      ageGroup,
+      package: packageType,
+      startDate,
+      endDate
+    } = req.body
 
-    if (!child || !daycare || !ageGroup || !packageType || !startDate || !endDate) {
+    
+    if (
+      !child ||
+      !daycare ||
+      !ageGroup ||
+      !packageType ||
+      !startDate ||
+      !endDate
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Child, daycare, age group, and package are required'
+        message:
+          'Child, daycare, age group, package, start date and end date are required'
       })
     }
 
-    if (new Date(endDate) < new Date(startDate)) {
-        return res.status(400).json({
-          success: false,
-          message: 'End date must be after start date'
-        })
-      }
+    // Convert dates
+    const start = new Date(startDate)
+    const end = new Date(endDate)
 
-    if (![AGE_GROUPS.INFANT, AGE_GROUPS.TODDLER, AGE_GROUPS.PRESCHOOL].includes(ageGroup)) {
+    // Validate dates
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format'
+      })
+    }
+
+    if (end < start) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date must be after start date'
+      })
+    }
+
+    
+    if (
+      ![
+        AGE_GROUPS.INFANT,
+        AGE_GROUPS.TODDLER,
+        AGE_GROUPS.PRESCHOOL
+      ].includes(ageGroup)
+    ) {
       return res.status(400).json({
         success: false,
         message: 'Invalid age group'
       })
     }
 
+    
     if (!PACKAGE_PRICES[packageType]) {
       return res.status(400).json({
         success: false,
@@ -42,20 +75,27 @@ const createEnrollmentRequest = async (req, res) => {
 
     const amount = PACKAGE_PRICES[packageType]
 
+    // checks the enrollmnet alrdy avlbl 
     const existingActiveEnrollment = await Enrollment.findOne({
       child,
       enrollmentStatus: {
-        $in: [ENROLLMENT_STATUS.PENDING, ENROLLMENT_STATUS.APPROVED, ENROLLMENT_STATUS.CONFIRMED]
+        $in: [
+          ENROLLMENT_STATUS.PENDING,
+          ENROLLMENT_STATUS.APPROVED,
+          ENROLLMENT_STATUS.CONFIRMED
+        ]
       }
     })
 
     if (existingActiveEnrollment) {
       return res.status(400).json({
         success: false,
-        message: 'This child already has an active or pending enrollment. Please wait for it to be resolved before enrolling elsewhere.'
+        message:
+          'This child already has an active or pending enrollment. Please wait for it to be resolved before enrolling elsewhere.'
       })
     }
 
+  
     const daycareData = await Daycare.findById(daycare)
 
     if (!daycareData) {
@@ -65,6 +105,7 @@ const createEnrollmentRequest = async (req, res) => {
       })
     }
 
+    
     if (daycareData.isBlocked) {
       return res.status(403).json({
         success: false,
@@ -72,13 +113,46 @@ const createEnrollmentRequest = async (req, res) => {
       })
     }
 
-    if (daycareData.seatsAvailable <= 0) {
+    // Find CONFIRMED enrollments that overlap
+    const overlappingEnrollments = await Enrollment.find({
+      daycare: daycare,
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+
+      startDate: {
+        $lte: end
+      },
+
+      endDate: {
+        $gte: start
+      }
+    })
+
+    //  Calculate booked seats
+    const bookedSeats = overlappingEnrollments.length
+
+    //  Calculate available seats for selected dates
+    const availableSeats =
+      daycareData.seatCapacity - bookedSeats
+
+    console.log('Seat availability check:', {
+      daycare: daycareData.name,
+      startDate: start,
+      endDate: end,
+      capacity: daycareData.seatCapacity,
+      bookedSeats,
+      availableSeats
+    })
+
+    // If no seat available
+    if (availableSeats <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'No seats available in this daycare'
+        message: 'No seats available for the selected dates',
+        availableSeats: 0
       })
     }
 
+    
     const enrollment = await Enrollment.create({
       parent: req.user.id,
       child,
@@ -86,18 +160,26 @@ const createEnrollmentRequest = async (req, res) => {
       ageGroup,
       package: packageType,
       amount,
-      startDate,
-       endDate,
+      startDate: start,
+      endDate: end,
       enrollmentStatus: ENROLLMENT_STATUS.PENDING
     })
 
+    
     res.status(201).json({
       success: true,
       message: 'Enrollment request submitted successfully',
-      data: enrollment
+      data: enrollment,
+      availability: {
+        capacity: daycareData.seatCapacity,
+        bookedSeats,
+        availableSeats
+      }
     })
 
   } catch (error) {
+    console.error('CREATE ENROLLMENT ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: error.message
@@ -105,9 +187,11 @@ const createEnrollmentRequest = async (req, res) => {
   }
 }
 
+
 const approveEnrollment = async (req, res) => {
   try {
-    const enrollment = await Enrollment.findById(req.params.id).populate('parent', 'name email')
+    const enrollment = await Enrollment.findById(req.params.id)
+      .populate('parent', 'name email')
 
     if (!enrollment) {
       return res.status(404).json({
@@ -127,27 +211,71 @@ const approveEnrollment = async (req, res) => {
         message: 'Not authorized for this daycare'
       })
     }
-      
+
     if (daycare.isBlocked) {
-        return res.status(403).json({
-          success: false,
-          message: 'This daycare is temporarily blocked'
-        })
-      }
-
-
-    if (enrollment.enrollmentStatus !== ENROLLMENT_STATUS.APPROVED) {
-      if (daycare.seatsAvailable <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No seats available'
-        })
-      }
-
-      daycare.seatsAvailable = daycare.seatsAvailable - 1
-      await daycare.save()
+      return res.status(403).json({
+        success: false,
+        message: 'This daycare is temporarily blocked'
+      })
     }
-     enrollment.enrollmentStatus = ENROLLMENT_STATUS.APPROVED
+
+    // Already approved
+    if (enrollment.enrollmentStatus === ENROLLMENT_STATUS.APPROVED) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment is already approved'
+      })
+    }
+
+    // Don't approve rejected/confirmed/expired enrollments
+    if (
+      enrollment.enrollmentStatus !== ENROLLMENT_STATUS.PENDING
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending enrollments can be approved'
+      })
+    }
+
+    // Check overlapping confirmed enrollments
+    const overlappingEnrollments = await Enrollment.find({
+      daycare: enrollment.daycare,
+
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+
+      _id: {
+        $ne: enrollment._id
+      },
+
+      startDate: {
+        $lte: enrollment.endDate
+      },
+
+      endDate: {
+        $gte: enrollment.startDate
+      }
+    })
+
+    const bookedSeats = overlappingEnrollments.length
+
+    const availableSeats =
+      daycare.seatCapacity - bookedSeats
+
+    console.log('Approval availability:', {
+      capacity: daycare.seatCapacity,
+      bookedSeats,
+      availableSeats
+    })
+
+    if (availableSeats <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No seats available for the selected dates'
+      })
+    }
+
+    // Approve enrollment
+    enrollment.enrollmentStatus = ENROLLMENT_STATUS.APPROVED
 
     await enrollment.save()
 
@@ -156,19 +284,47 @@ const approveEnrollment = async (req, res) => {
       'Enrollment Request Approved!',
       `
       <p>Hi ${enrollment.parent.name},</p>
-      <p>Your enrollment request for "<strong>${daycare.name}</strong>" has been approved!</p>
-      <p><strong>Package:</strong> ${enrollment.package}</p>
-      <p><strong>Amount:</strong> ₹${enrollment.amount}</p>
+
+      <p>
+        Your enrollment request for
+        "<strong>${daycare.name}</strong>"
+        has been approved!
+      </p>
+
+      <p>
+        <strong>Package:</strong> ${enrollment.package}
+      </p>
+
+      <p>
+        <strong>Amount:</strong> ₹${enrollment.amount}
+      </p>
+
+      <p>
+        <strong>Start Date:</strong>
+        ${new Date(enrollment.startDate).toLocaleDateString()}
+      </p>
+
+      <p>
+        <strong>End Date:</strong>
+        ${new Date(enrollment.endDate).toLocaleDateString()}
+      </p>
       `
     )
 
     res.status(200).json({
       success: true,
       message: 'Enrollment approved successfully',
-      data: enrollment
+      data: enrollment,
+      availability: {
+        capacity: daycare.seatCapacity,
+        bookedSeats,
+        availableSeats
+      }
     })
 
   } catch (error) {
+    console.error('APPROVE ENROLLMENT ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: error.message
@@ -285,17 +441,47 @@ const deleteEnrollment = async (req, res) => {
 // parent
 const getMyEnrollments = async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({ parent: req.user.id })
+
+    const page = Number(req.query.page) || 1
+    const limit = Number(req.query.limit) || 6
+
+    const skip = (page - 1) * limit
+
+    // Get total number of enrollments
+    const totalEnrollments = await Enrollment.countDocuments({
+      parent: req.user.id
+    })
+
+    // Get enrollments for current page
+    const enrollments = await Enrollment.find({
+      parent: req.user.id
+    })
       .populate('child')
       .populate('daycare', 'name address owner')
       .populate('assignedStaff', 'name email designation')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+
+    const totalPages = Math.ceil(
+      totalEnrollments / limit
+    )
 
     res.status(200).json({
       success: true,
-      data: enrollments
+      data: enrollments,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalEnrollments,
+        limit
+      }
     })
 
   } catch (error) {
+
+    console.error('GET MY ENROLLMENTS ERROR:', error)
+
     res.status(500).json({
       success: false,
       message: error.message
@@ -434,7 +620,7 @@ const renewEnrollment = async (req, res) => {
       endDate
     } = req.body
 
-    // 1. Validate required fields
+    
     if (!enrollmentId || !packageType || !startDate || !endDate) {
       return res.status(400).json({
         success: false,
@@ -442,7 +628,7 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
-    // 2. Validate package
+    //  Validate package
     let amount
 
     if (packageType === 'daily') {
@@ -458,7 +644,7 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
-    // 3. Validate dates
+    // Validate dates
     const start = new Date(startDate)
     const end = new Date(endDate)
 
@@ -476,7 +662,7 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
-    // 4. Find old enrollment
+    
     const oldEnrollment = await Enrollment.findOne({
       _id: enrollmentId,
       parent: req.user.id
@@ -489,21 +675,89 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
-    // 5. Only expired enrollment can be renewed
-   const today = new Date()
-        today.setHours(0, 0, 0, 0)
+    // Check whether old enrollment has actually expired
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-        const enrollmentEndDate = new Date(oldEnrollment.endDate)
-        enrollmentEndDate.setHours(0, 0, 0, 0)
+    const enrollmentEndDate = new Date(oldEnrollment.endDate)
+    enrollmentEndDate.setHours(0, 0, 0, 0)
 
-        if (enrollmentEndDate >= today) {
-          return res.status(400).json({
-            success: false,
-            message: 'Enrollment has not expired yet'
-          })
+    if (enrollmentEndDate >= today) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enrollment has not expired yet'
+      })
+    }
+
+    
+    const daycare = await Daycare.findById(oldEnrollment.daycare)
+
+    if (!daycare) {
+      return res.status(404).json({
+        success: false,
+        message: 'Daycare not found'
+      })
+    }
+
+    
+    if (daycare.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'This daycare is temporarily unavailable'
+      })
+    }
+
+    // Check overlapping confirmed enrollments
+    const overlappingEnrollments = await Enrollment.find({
+      daycare: oldEnrollment.daycare,
+
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+
+      // Don't count the old enrollment
+      _id: {
+        $ne: oldEnrollment._id
+      },
+
+      // Overlap condition
+      startDate: {
+        $lte: end
+      },
+
+      endDate: {
+        $gte: start
+      }
+    })
+
+
+    const bookedSeats = overlappingEnrollments.length
+
+    
+    const availableSeats =
+      daycare.seatCapacity - bookedSeats
+
+    console.log('RENEWAL AVAILABILITY:', {
+      daycare: daycare.name,
+      startDate: start,
+      endDate: end,
+      capacity: daycare.seatCapacity,
+      bookedSeats,
+      availableSeats
+    })
+
+    
+    if (availableSeats <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No seats available for the selected renewal dates',
+        availability: {
+          capacity: daycare.seatCapacity,
+          bookedSeats,
+          availableSeats: 0
         }
+      })
+    }
 
-    // 6. Create new enrollment
+    //  Create renewal enrollment
     const newEnrollment = await Enrollment.create({
       child: oldEnrollment.child,
       parent: oldEnrollment.parent,
@@ -516,17 +770,25 @@ const renewEnrollment = async (req, res) => {
       startDate: start,
       endDate: end,
 
-      enrollmentStatus: 'approved',
+      enrollmentStatus: ENROLLMENT_STATUS.APPROVED,
       paymentStatus: 'pending',
 
       assignedStaff: null,
       isRenewal: true
     })
 
+    
     res.status(201).json({
       success: true,
       message: 'Renewal created successfully',
-      data: newEnrollment
+
+      data: newEnrollment,
+
+      availability: {
+        capacity: daycare.seatCapacity,
+        bookedSeats,
+        availableSeats
+      }
     })
 
   } catch (error) {
@@ -540,6 +802,86 @@ const renewEnrollment = async (req, res) => {
   }
 }
 
+const checkEnrollmentAvailability = async (req, res) => {
+  try {
+    const { daycareId, startDate, endDate } = req.query
+
+  
+    if (!daycareId || !startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Daycare, start date and end date are required'
+      })
+    }
+
+    
+    const requestedStartDate = new Date(startDate)
+    const requestedEndDate = new Date(endDate)
+
+    
+    if (
+      isNaN(requestedStartDate.getTime()) ||
+      isNaN(requestedEndDate.getTime())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid date format'
+      })
+    }
+
+    if (requestedEndDate < requestedStartDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date cannot be before start date'
+      })
+    }
+
+    
+    const daycare = await Daycare.findById(daycareId)
+
+    if (!daycare) {
+      return res.status(404).json({
+        success: false,
+        message: 'Daycare not found'
+      })
+    }
+
+    //  Check overlapping confirmed enrollments
+    const bookedSeats = await Enrollment.countDocuments({
+      daycare: daycareId,
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+      startDate: { $lte: requestedEndDate },
+      endDate: { $gte: requestedStartDate }
+    })
+
+    // Calculate available seats
+    const availableSeats = Math.max(
+      0,
+      daycare.seatCapacity - bookedSeats
+    )
+
+    
+    return res.status(200).json({
+      success: true,
+      seatCapacity: daycare.seatCapacity,
+      bookedSeats,
+      availableSeats,
+      isAvailable: availableSeats > 0,
+      message:
+        availableSeats > 0
+          ? `${availableSeats} seat(s) available for the selected dates`
+          : 'No seats available for the selected dates'
+    })
+
+  } catch (error) {
+    console.error('Check availability error:', error)
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
 module.exports = {
   createEnrollmentRequest,
   approveEnrollment,
@@ -549,5 +891,6 @@ module.exports = {
   assignStaff,
   deleteEnrollment,
   getMyAssignedStaff,
-  renewEnrollment
+  renewEnrollment,
+  checkEnrollmentAvailability
 }

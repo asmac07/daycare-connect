@@ -25,14 +25,15 @@ const daycareSchema = new mongoose.Schema({
             default: 'Point'
             },
 
-                coordinates: {
-                    type: [Number]  
-                    }
+         coordinates: {
+              type: [Number]  
+              }
         },
         seatCapacity: {
             type: Number,
             required: true
         },
+
         seatsAvailable: {
             type: Number
         },

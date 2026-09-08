@@ -158,12 +158,25 @@ const OwnerDaycare = () => {
                     className="w-full rounded-full px-4 py-2.5 text-sm border-[1.5px] border-dc-border bg-dc-field text-dc-ink outline-none focus:border-dc-blue transition"
                   />
 
-                  <input
-                    type="number"
-                    value={seatCapacity}
-                    onChange={(e) => setSeatCapacity(e.target.value)}
-                    className="w-full rounded-full px-4 py-2.5 text-sm border-[1.5px] border-dc-border bg-dc-field text-dc-ink outline-none focus:border-dc-blue transition"
-                  />
+                 <label className="block">
+                      <span className="text-sm font-semibold text-dc-ink ml-2">
+                        Seat Capacity
+                      </span>
+
+                      <input
+                        type="number"
+                        min="1"
+                        value={seatCapacity}
+                        onChange={(e) => setSeatCapacity(e.target.value)}
+                        className="mt-1 w-full rounded-full px-4 py-2.5 text-sm border-[1.5px] border-dc-border bg-dc-field text-dc-ink outline-none focus:border-dc-blue transition"
+                      />
+
+                      {daycare && (
+                        <span className="block text-xs text-dc-muted mt-1 ml-2">
+                          {daycare.occupiedSeats} seats are currently occupied.
+                        </span>
+                      )}
+                    </label>
 
                   <input
                     type="text"
@@ -232,10 +245,54 @@ const OwnerDaycare = () => {
 
                 <p className="mt-3 text-dc-ink">{daycare.address}</p>
 
-                <p className="text-dc-muted text-sm mt-1">
-                  Seats: {daycare.seatsAvailable} / {daycare.seatCapacity}
-                </p>
+             <div className="mt-5 p-5 rounded-2xl bg-dc-mist border border-dc-border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-dc-ink">
+                      Seat Capacity
+                    </p>
 
+                    <p className="text-xs text-dc-muted mt-1">
+                      Current daycare availability
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="text-2xl font-bold font-baloo text-dc-ink">
+                      {daycare.availableSeats} / {daycare.seatCapacity}
+                    </p>
+
+                    <p className="text-xs text-dc-muted">
+                      seats available
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <div className="w-full h-2 bg-white rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-dc-blue to-dc-green rounded-full"
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (daycare.availableSeats / daycare.seatCapacity) * 100
+                        )}%`
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {daycare.availableSeats === 0 ? (
+                  <p className="mt-3 text-sm font-semibold text-dc-error-text">
+                    ⚠️ All seats are currently occupied
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-dc-muted">
+                    {daycare.availableSeats} seat
+                    {daycare.availableSeats !== 1 ? 's' : ''} currently available
+                  </p>
+                )}
+              </div>
                 <p className="text-dc-muted text-sm">
                   Facilities: {daycare.facilities?.join(', ')}
                 </p>
