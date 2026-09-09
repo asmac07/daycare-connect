@@ -18,6 +18,7 @@ const messageRoutes = require('./routes/messageRoutes')
 const paymentRoutes = require('./routes/paymentRoutes')
 const walletRoutes = require('./routes/walletRoutes')
 const staffMessageRoutes = require('./routes/staffMessageRoutes')
+const uploadRoutes = require('./routes/uploadRoutes')
 
 const app = express()
 
@@ -43,5 +44,6 @@ app.use('/api/v1/payment', paymentRoutes)
 app.use('/api/v1/messages', messageRoutes)
 app.use('/api/v1/wallet', walletRoutes)
 app.use('/api/v1/staff-messages', staffMessageRoutes)
+app.use('/api/v1/upload', uploadRoutes)
 
 module.exports = app
