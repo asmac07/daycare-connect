@@ -149,7 +149,11 @@ io.on('connection', (socket) => {
         daycare: data.daycare,
         parent: data.parent,
         sender: data.sender,
-        text: data.text
+        
+        text: data.text || '',
+        messageType: data.messageType || 'text',
+        fileUrl: data.fileUrl || null,
+        fileName: data.fileName || null
       })
 
       // Send new message to room
@@ -247,7 +251,10 @@ io.on('connection', (socket) => {
         parent: data.parent,
         staff: data.staff,
         sender: data.sender,
-        text: data.text
+         text: data.text || '',
+        messageType: data.messageType || 'text',
+        fileUrl: data.fileUrl || null,
+        fileName: data.fileName || null
       })
 
       // Send message to staff chat room

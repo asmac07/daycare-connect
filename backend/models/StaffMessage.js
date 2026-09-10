@@ -29,8 +29,23 @@ const staffMessageSchema = new mongoose.Schema({
 
   text: {
     type: String,
-    required: true
+    defualt : ''
   },
+  messageType: {
+      type: String,
+      enum: ['text', 'image', 'file', 'audio', 'video'],
+      default: 'text'
+},
+
+  fileUrl: {
+      type: String,
+      default: null
+    },
+
+   fileName: {
+      type: String,
+      default: null
+    },
 
   delivered: {
     type: Boolean,
