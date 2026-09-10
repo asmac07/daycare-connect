@@ -7,7 +7,9 @@ const { getAllUsers, blockUser, unblockUser,
     getPendingDaycares, approveDaycare, rejectDaycare, blockDaycare, unblockDaycare,
     getAllDaycares,suspendDaycare
                  } = require('../controllers/adminController')
-
+const {
+  getAdminAnalytics
+} = require('../controllers/adminAnalyticsController')
 
 router.get('/users', protect, authorizeRoles('admin'), getAllUsers)
 router.put('/users/:id/block', protect, authorizeRoles('admin'), blockUser)
@@ -20,4 +22,7 @@ router.put('/daycares/:id/block', protect, authorizeRoles('admin'), blockDaycare
 router.put('/daycares/:id/unblock', protect, authorizeRoles('admin'), unblockDaycare)
 router.get('/allDaycares', protect, authorizeRoles('admin'), getAllDaycares)
 router.put('/daycares/:id/suspend',protect,authorizeRoles('admin'),suspendDaycare)
+
+router.get( '/analytics', protect,  authorizeRoles('admin'),getAdminAnalytics)
+
 module.exports = router
