@@ -305,6 +305,55 @@ io.on('connection', (socket) => {
 
   })
 
+  // Parent ↔ Staff Audio / Video Calling
+
+// Incoming call
+socket.on('staffIncomingCall', (data) => {
+
+  socket.to(data.roomId).emit('staffIncomingCall', {
+    roomId: data.roomId,
+    to: data.to,
+    from: data.from,
+    signal: data.signal,
+    callType: data.callType
+  })
+
+})
+
+
+// WebRTC signaling
+socket.on('staffCallSignal', (data) => {
+
+  socket.to(data.roomId).emit('staffCallSignal', {
+    roomId: data.roomId,
+    to: data.to,
+    from: data.from,
+    signal: data.signal,
+    callType: data.callType
+  })
+
+})
+
+
+// Call ended
+socket.on('staffCallEnded', (data) => {
+
+  socket.to(data.roomId).emit('staffCallEnded', {
+    to: data.to
+  })
+
+})
+
+
+// Call rejected
+socket.on('staffCallRejected', (data) => {
+
+  socket.to(data.roomId).emit('staffCallRejected', {
+    to: data.to
+  })
+
+})
+
   // User disconnected
   socket.on('disconnect', () => {
 
