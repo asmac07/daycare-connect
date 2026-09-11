@@ -1,0 +1,18 @@
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: daycare-backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build: ./frontend
+    container_name: daycare-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
