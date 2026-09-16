@@ -1,4 +1,4 @@
-name: DayCare Connect CI
+name: DayCare Connect CI/CD
 
 on:
   push:
@@ -8,27 +8,64 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      
       - name: Checkout code
         uses: actions/checkout@v4
 
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      
       - name: Install backend dependencies
         working-directory: backend
         run: npm install
 
+      
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm install
 
+      # frontend build successuflly
       - name: Build frontend
         working-directory: frontend
         run: npm run build
+
+      #  login to GitHub Container Registry
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Build backend Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/daycare-backend:latest ./backend
+
+    
+      - name: Build frontend Docker image
+        run: |
+          docker build -t ghcr.io/${{ github.repository_owner }}/daycare-frontend:latest ./frontend
+
+      # Push backend image to GHCR
+      - name: Push backend image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/daycare-backend:latest
+
+      #  Push frontend image to GHCR
+      - name: Push frontend image
+        run: |
+          docker push ghcr.io/${{ github.repository_owner }}/daycare-frontend:latest
