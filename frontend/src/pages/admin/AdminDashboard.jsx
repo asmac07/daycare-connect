@@ -27,9 +27,8 @@ const AdminDashboard = () => {
   const [customEndDate, setCustomEndDate] = useState('')
 
 
-  // --------------------------------
+
   // Create date range
-  // --------------------------------
 
   const getDateRange = (selectedFilter) => {
 
@@ -87,9 +86,7 @@ const AdminDashboard = () => {
   }
 
 
-  // --------------------------------
   // Fetch analytics
-  // --------------------------------
 
   const fetchAnalytics = async (selectedFilter = filter) => {
 
@@ -164,10 +161,9 @@ const AdminDashboard = () => {
   }
 
 
-  // --------------------------------
+  
   // Initial load + filter change
-  // --------------------------------
-
+ 
   useEffect(() => {
 
     if (filter !== 'custom') {
@@ -177,10 +173,9 @@ const AdminDashboard = () => {
   }, [filter])
 
 
-  // --------------------------------
+  
   // Format numbers
-  // --------------------------------
-
+  
   const formatNumber = (number) => {
 
     return new Intl.NumberFormat(
@@ -190,9 +185,8 @@ const AdminDashboard = () => {
   }
 
 
-  // --------------------------------
+  
   // Format currency
-  // --------------------------------
 
   const formatCurrency = (amount) => {
 
@@ -208,9 +202,9 @@ const AdminDashboard = () => {
   }
 
 
-  // --------------------------------
+  
   // Transform enrollment trend
-  // --------------------------------
+
 
   const enrollmentTrend =
     analytics?.enrollmentTrend?.map((item) => {
@@ -234,9 +228,8 @@ const AdminDashboard = () => {
     }) || []
 
 
-  // --------------------------------
   // Transform payment trend
-  // --------------------------------
+
 
   const paymentTrend =
     analytics?.paymentTrend?.map((item) => {
@@ -260,9 +253,9 @@ const AdminDashboard = () => {
     }) || []
 
 
-  // --------------------------------
+  
   // Top daycare data
-  // --------------------------------
+
 
   const topDaycares =
     analytics?.topDaycares?.map((item) => ({
@@ -271,9 +264,7 @@ const AdminDashboard = () => {
     })) || []
 
 
-  // --------------------------------
-  // Loading state
-  // --------------------------------
+  
 
   if (loading) {
 
@@ -299,9 +290,7 @@ const AdminDashboard = () => {
   }
 
 
-  // --------------------------------
-  // Error state
-  // --------------------------------
+  
 
   if (error) {
 
@@ -533,9 +522,7 @@ const AdminDashboard = () => {
         </div>
 
 
-        {/* -------------------------------- */}
-        {/* KPI Cards */}
-        {/* -------------------------------- */}
+      
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
 
@@ -657,9 +644,7 @@ const AdminDashboard = () => {
         </div>
 
 
-        {/* -------------------------------- */}
-        {/* Charts */}
-        {/* -------------------------------- */}
+        
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
@@ -818,9 +803,6 @@ const AdminDashboard = () => {
         </div>
 
 
-        {/* -------------------------------- */}
-        {/* Top 5 Daycares */}
-        {/* -------------------------------- */}
 
         <div className="bg-white rounded-[1.75rem] p-6 shadow-sm border border-white/70 mb-6">
 
@@ -897,9 +879,6 @@ const AdminDashboard = () => {
         </div>
 
 
-        {/* -------------------------------- */}
-        {/* Enrollment Summary */}
-        {/* -------------------------------- */}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
 
@@ -1028,9 +1007,7 @@ const AdminDashboard = () => {
         </div>
 
 
-        {/* -------------------------------- */}
-        {/* Payment History */}
-        {/* -------------------------------- */}
+        
 
         <div className="bg-white rounded-[1.75rem] p-6 shadow-sm border border-white/70">
 

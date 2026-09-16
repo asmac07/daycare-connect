@@ -53,9 +53,11 @@ const StaffChatWindow = ({
   const [isMuted, setIsMuted] = useState(false)
   const [isCameraOn, setIsCameraOn] = useState(true)
 
+  // to remember the value and access the dom element(myself)
   const localVideoRef = useRef(null)
-  const remoteVideoRef = useRef(null)
+  const remoteVideoRef = useRef(null) //(other user)
 
+    // to store webrtc connection object
   const peerRef = useRef(null)
   const localStreamRef = useRef(null)
 
@@ -178,7 +180,8 @@ const StaffChatWindow = ({
 
   const createPeerConnection = () => {
     const peer = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // discover the netwrk info
     })
 
     peerRef.current = peer
@@ -187,9 +190,11 @@ const StaffChatWindow = ({
   }
 
   const startCall = async (type) => {
+
     pendingIceCandidatesRef.current = []
 
     try {
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: type === 'video'
@@ -205,16 +210,17 @@ const StaffChatWindow = ({
 
       const peer = createPeerConnection()
 
+      //camera  micro add to the webrtc
       stream.getTracks().forEach((track) => {
-        peer.addTrack(track, stream)
+        peer.addTrack(track, stream) //add the local audio and video track to the webrtc peer connection
       })
-
+      //for thee remote side( remote stream arrives, attch to the  remote video elemnt)
       peer.ontrack = (event) => {
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = event.streams[0]
         }
       }
-
+      // to findout the posssible netwrk  connection info to the browser
       peer.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit('staffCallSignal', {
@@ -223,15 +229,15 @@ const StaffChatWindow = ({
             from: user.id,
             signal: {
               type: 'ice-candidate',
-              candidate: event.candidate
+              candidate: event.candidate //actual canditate
             },
             callType: type
           })
         }
       }
 
-      const offer = await peer.createOffer()
-      await peer.setLocalDescription(offer)
+      const offer = await peer.createOffer() // it include connection and media based info 
+      await peer.setLocalDescription(offer) //local connection description
 
       socket.emit('staffIncomingCall', {
         roomId,
@@ -279,7 +285,7 @@ const StaffChatWindow = ({
           remoteVideoRef.current.srcObject = event.streams[0]
         }
       }
-
+          // handling  ice candidtes
       peer.onicecandidate = (event) => {
         if (event.candidate) {
           socket.emit('staffCallSignal', {
@@ -294,9 +300,11 @@ const StaffChatWindow = ({
           })
         }
       }
-
+            // set the peer connection as remote description
       await peer.setRemoteDescription(new RTCSessionDescription(signal))
 
+      // if the ice candidate comes before setting the remote description
+      //add the candidate webrtc  peer connection
       for (const candidate of pendingIceCandidatesRef.current) {
         await peer.addIceCandidate(new RTCIceCandidate(candidate))
       }

@@ -305,7 +305,7 @@ io.on('connection', (socket) => {
 
   })
 
-  // Parent ↔ Staff Audio / Video Calling
+  // Parent -Staff Audio / Video Calling
 
 // Incoming call
 socket.on('staffIncomingCall', (data) => {

@@ -10,9 +10,9 @@ const getAdminAnalytics = async (req, res) => {
 
     const { period, startDate, endDate } = req.query
 
-    // --------------------------------
-    // 1. Create date filter
-    // --------------------------------
+   
+    //Create date filter
+   
 
     let enrollmentDateFilter = {}
     let paymentDateFilter = {}
@@ -39,9 +39,8 @@ const getAdminAnalytics = async (req, res) => {
       }
     }
 
-    // --------------------------------
-    // 2. Basic counts
-    // --------------------------------
+   
+    //  Basic counts
 
     const totalUsers = await User.countDocuments({
       role: { $ne: 'admin' },
@@ -71,9 +70,7 @@ const getAdminAnalytics = async (req, res) => {
       enrollmentDateFilter
     )
 
-    // --------------------------------
-    // 3. Total revenue
-    // --------------------------------
+    //  Total revenue
 
     const revenueResult = await Payment.aggregate([
       {
@@ -96,9 +93,9 @@ const getAdminAnalytics = async (req, res) => {
         : 0
 
 
-    // --------------------------------
-    // 4. User distribution
-    // --------------------------------
+    
+    // User distribution
+    
 
     const userDistribution = await User.aggregate([
       {
@@ -121,9 +118,8 @@ const getAdminAnalytics = async (req, res) => {
     ])
 
 
-    // --------------------------------
-    // 5. Enrollment status
-    // --------------------------------
+    
+    //  Enrollment status
 
     const enrollmentStatus = await Enrollment.aggregate([
       {
@@ -143,9 +139,9 @@ const getAdminAnalytics = async (req, res) => {
     ])
 
 
-    // --------------------------------
-    // 6. Enrollment trend
-    // --------------------------------
+    
+    //  Enrollment trend
+    
 
     const enrollmentTrend = await Enrollment.aggregate([
       {
@@ -169,9 +165,8 @@ const getAdminAnalytics = async (req, res) => {
     ])
 
 
-    // --------------------------------
-    // 7. Payment trend
-    // --------------------------------
+    
+    // Payment trend
 
     const paymentTrend = await Payment.aggregate([
       {
@@ -198,9 +193,8 @@ const getAdminAnalytics = async (req, res) => {
     ])
 
 
-    // --------------------------------
-    // 8. Top 5 Daycares
-    // --------------------------------
+    
+    //  Top 5 Daycares
 
     const topDaycares = await Enrollment.aggregate([
       {
@@ -241,11 +235,7 @@ const getAdminAnalytics = async (req, res) => {
     ])
 
 
-    // --------------------------------
-    // 9. Payment history
-    // --------------------------------
-
-    const paymentHistory = await Payment.find({
+   const paymentHistory = await Payment.find({
       status: 'paid',
       ...paymentDateFilter
     })
@@ -262,9 +252,6 @@ const getAdminAnalytics = async (req, res) => {
       .limit(20)
 
 
-    // --------------------------------
-    // Final response
-    // --------------------------------
 
     res.status(200).json({
       success: true,
