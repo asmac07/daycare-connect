@@ -41,6 +41,15 @@ const walletTransactionSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId
     },
 
+    razorpayPayoutId: {
+      type: String
+    },
+
+    payoutStatus: {
+      type: String,
+      enum: ['PENDING', 'PROCESSING', 'SUCCESS', 'FAILED']
+    },
+
     balanceAfter: {
       type: Number,
       required: true

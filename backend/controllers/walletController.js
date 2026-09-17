@@ -2,6 +2,8 @@
 const mongoose = require('mongoose')
 const Wallet = require('../models/Wallet')
 const WalletTransaction = require('../models/WalletTransaction')
+const axios = require('axios')
+const crypto = require('crypto')
 
 const getOwnerWallet = async (req, res) => {
   try {
@@ -75,6 +77,12 @@ const withdrawMoney = async (req, res) => {
       throw new Error('Insufficient wallet balance')
     }
 
+    console.log('STEP 1: Calling RazorpayX payout')
+
+    const payout = await createRazorpayXPayout(Number(amount))
+
+    console.log('RAZORPAYX PAYOUT:', payout)
+
     
     wallet.balance -= Number(amount)
 
@@ -83,18 +91,20 @@ const withdrawMoney = async (req, res) => {
 
     
     await WalletTransaction.create(
-      [
-        {
-          owner: req.user.id,
-          wallet: wallet._id,
-          type: 'DEBIT',
-          amount: Number(amount),
-          reason: 'WITHDRAWAL',
-          balanceAfter: wallet.balance
-        }
-      ],
-      { session }
-    )
+  [
+    {
+      owner: req.user.id,
+      wallet: wallet._id,
+      type: 'DEBIT',
+      amount: Number(amount),
+      reason: 'WITHDRAWAL',
+      balanceAfter: wallet.balance,
+      razorpayPayoutId: payout.id,
+      payoutStatus: payout.status.toUpperCase()
+    }
+  ],
+  { session }
+)
 
     //confrmation(trasnsaction succed)
     await session.commitTransaction()
@@ -110,13 +120,16 @@ const withdrawMoney = async (req, res) => {
 
   } catch (error) {
 
+    console.log('RAZORPAY ERROR DATA:', error.response?.data)
+  console.log('WITHDRAW MONEY ERROR:', error.message)
+
     await session.abortTransaction()
 
     console.log('WITHDRAW MONEY ERROR:', error)
 
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.response?.data?.error?.description || error.message
     })
 
   } finally {
@@ -124,8 +137,103 @@ const withdrawMoney = async (req, res) => {
   }
 }
 
+const createRazorpayXPayout = async (amount) => {
+
+  const response = await axios.post(
+    'https://api.razorpay.com/v1/payouts',
+    {
+      account_number: process.env.RAZORPAYX_ACCOUNT_NUMBER,
+      // fund_account_id: fundAccountId,
+      fund_account_id: process.env.RAZORPAYX_FUND_ACCOUNT_ID,
+      amount: Number(amount) * 100,
+      currency: 'INR',
+      mode: 'UPI',
+      purpose: 'payout',
+      queue_if_low_balance: true,
+      reference_id: `WITHDRAW_${Date.now()}`,
+      narration: 'DayCare wallet withdrawal'
+    },
+    {
+      auth: {
+        username: process.env.RAZORPAYX_KEY_ID,
+        password: process.env.RAZORPAYX_KEY_SECRET
+      }
+    }
+  )
+
+  return response.data
+}
+
+  const razorpayXWebhook = async (req, res) => {
+  try {
+    console.log('RAZORPAYX WEBHOOK RECEIVED')
+
+    const webhookSignature = req.headers['x-razorpay-signature']
+
+    const expectedSignature = crypto
+      .createHmac(
+        'sha256',
+        process.env.RAZORPAYX_WEBHOOK_SECRET
+      )
+      .update(req.rawBody)
+      .digest('hex')
+
+    if (webhookSignature !== expectedSignature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid webhook signature'
+      })
+    }
+
+    console.log('WEBHOOK SIGNATURE VERIFIED')
+
+    const event = req.body.event
+
+    console.log('WEBHOOK EVENT:', event)
+
+    if (event === 'payout.processed') {
+
+      const payout = req.body.payload.payout.entity
+
+      console.log('PROCESSED PAYOUT:', payout)
+
+      const transaction = await WalletTransaction.findOne({
+        razorpayPayoutId: payout.id
+      })
+
+      if (!transaction) {
+        console.log('Wallet transaction not found')
+        return res.status(200).json({
+          success: true
+        })
+      }
+
+      transaction.payoutStatus = 'SUCCESS'
+
+      await transaction.save()
+
+      console.log(
+        'Wallet transaction updated to SUCCESS'
+      )
+    }
+
+    res.status(200).json({
+      success: true
+    })
+
+  } catch (error) {
+    console.log('WEBHOOK ERROR:', error.message)
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
 
 module.exports = {
   getOwnerWallet,
-  withdrawMoney
+  withdrawMoney,
+  razorpayXWebhook,
+  createRazorpayXPayout
 }
