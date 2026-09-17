@@ -167,6 +167,10 @@ const createRazorpayXPayout = async (amount) => {
   const razorpayXWebhook = async (req, res) => {
   try {
     console.log('RAZORPAYX WEBHOOK RECEIVED')
+    console.log('WEBHOOK SIGNATURE:', webhookSignature)
+  console.log('RAW BODY EXISTS:', !!req.rawBody)
+console.log('WEBHOOK BODY:', req.body)
+
 
     const webhookSignature = req.headers['x-razorpay-signature']
 
