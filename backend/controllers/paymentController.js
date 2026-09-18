@@ -102,8 +102,13 @@ const createOrder = async (req, res) => {
 
   } catch (error) {
 
-    console.log('CREATE ORDER ERROR:', error.response?.data || error.message)
-    
+   console.log('CREATE ORDER ERROR:', {
+  message: error.message,
+  statusCode: error.statusCode,
+  error: error.error,
+  description: error.error?.description,
+  code: error.error?.code
+})
     res.status(500).json({ 
         success: false,
          message: error.message 
