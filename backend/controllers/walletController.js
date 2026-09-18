@@ -174,8 +174,7 @@ const createRazorpayXPayout = async (amount) => {
 console.log('WEBHOOK BODY:', req.body)
 
 
-    const webhookSignature = req.headers['x-razorpay-signature']
-
+    
     const expectedSignature = crypto
       .createHmac(
         'sha256',
