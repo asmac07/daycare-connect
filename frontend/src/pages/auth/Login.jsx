@@ -67,7 +67,7 @@ const Login = () => {
         
       }))
 
-        navigate(redirectByRole(response.data.data.role))
+        navigate(redirectByRole(response.data.data.role) , { replace: true })
       }
 
      catch (error) {
