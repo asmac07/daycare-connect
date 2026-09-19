@@ -15,6 +15,12 @@ const messageSchema = new mongoose.Schema({
                      required: true 
                     },
 
+                child: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Child',
+                    required: true
+                    },
+
                 sender: {
                      type: mongoose.Schema.Types.ObjectId, 
                      ref: 'User', 

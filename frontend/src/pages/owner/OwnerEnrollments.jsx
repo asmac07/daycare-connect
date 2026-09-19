@@ -457,6 +457,32 @@ const OwnerEnrollments = () => {
                   {selectedEnrollment.ageGroup}
                 </p>
 
+  
+
+                <p>
+                  <strong>Start Date:</strong>{" "}
+                  {selectedEnrollment.startDate
+                    ? new Date(selectedEnrollment.startDate).toLocaleDateString()
+                    : "N/A"}
+                </p>
+
+                <p>
+                  <strong>End Date:</strong>{" "}
+                  {selectedEnrollment.endDate
+                    ? new Date(selectedEnrollment.endDate).toLocaleDateString()
+                    : "N/A"}
+                </p>
+
+                <p>
+                  <strong>Status:</strong>{" "}
+                  {selectedEnrollment.enrollmentStatus}
+                </p>
+
+                <p>
+                  <strong>Payment:</strong>{" "}
+                  {selectedEnrollment.paymentStatus}
+                </p>
+
                 <p>
                   <strong>Status:</strong>{" "}
                   {selectedEnrollment.enrollmentStatus}

@@ -9,6 +9,6 @@ const {
 
 const { protect } = require('../middlewares/authMiddleware')
 
-router.get('/:daycareId/:parentId/:staffId', protect,getStaffMessages)
+router.get('/:daycareId/:parentId/:staffId/:childId', protect,getStaffMessages)
 
 module.exports = router

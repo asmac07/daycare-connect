@@ -149,7 +149,7 @@ io.on('connection', (socket) => {
         daycare: data.daycare,
         parent: data.parent,
         sender: data.sender,
-        
+        child: data.child,
         text: data.text || '',
         messageType: data.messageType || 'text',
         fileUrl: data.fileUrl || null,
@@ -249,6 +249,7 @@ io.on('connection', (socket) => {
       const message = await StaffMessage.create({
         daycare: data.daycare,
         parent: data.parent,
+        child: data.child,
         staff: data.staff,
         sender: data.sender,
          text: data.text || '',

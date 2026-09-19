@@ -4,11 +4,12 @@ const Message = require('../models/Message')
 
 const getMessages = async (req, res) => {
   try {
-    const { daycareId, parentId } = req.params
+    const { daycareId, parentId , childId } = req.params
 
     const messages = await Message.find({
       daycare: daycareId,
-      parent: parentId
+      parent: parentId,
+      child: childId
     }).sort({ createdAt: 1 })
 
     res.status(200).json({

@@ -33,6 +33,7 @@ const StaffChatWindow = ({
   daycareId,
   parentId,
   staffId,
+  childId,
   otherUserName,
   designation,
   daycareName,
@@ -49,6 +50,7 @@ const StaffChatWindow = ({
   const [callType, setCallType] = useState(null)
   const [incomingCall, setIncomingCall] = useState(null)
   const [callActive, setCallActive] = useState(false)
+  const [callEndedMessage, setCallEndedMessage] = useState('')
 
   const [isMuted, setIsMuted] = useState(false)
   const [isCameraOn, setIsCameraOn] = useState(true)
@@ -65,7 +67,7 @@ const StaffChatWindow = ({
 
   const messagesEndRef = useRef(null)
 
-  const roomId = `staff_${daycareId}_${parentId}_${staffId}`
+  const roomId = `staff_${daycareId}_${parentId}_${staffId}_${childId}`
 
   const otherUserId =
     String(user.id) === String(parentId)
@@ -76,7 +78,7 @@ const StaffChatWindow = ({
     socket.emit('userOnline')
 
     axiosInstance
-      .get(`/staff-messages/${daycareId}/${parentId}/${staffId}`)
+      .get(`/staff-messages/${daycareId}/${parentId}/${staffId}/${childId}`)
       .then((res) => {
         setMessages(res.data.data)
       })
@@ -94,11 +96,14 @@ const StaffChatWindow = ({
       const messageDaycareId = String(message.daycare)
       const messageParentId = String(message.parent)
       const messageStaffId = String(message.staff)
+      const messageChildId = String(message.child)
 
       if (
         messageDaycareId === String(daycareId) &&
         messageParentId === String(parentId) &&
-        messageStaffId === String(staffId)
+        messageStaffId === String(staffId)&&
+        messageChildId === String(childId)
+        
       ) {
         setMessages((prev) => [...prev, message])
       }
@@ -140,7 +145,7 @@ const StaffChatWindow = ({
       socket.off('staffUserStoppedTyping')
     }
 
-  }, [daycareId, parentId, staffId, otherUserId, user.id, roomId])
+  }, [daycareId, parentId, staffId, childId, otherUserId, user.id, roomId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -165,6 +170,7 @@ const StaffChatWindow = ({
       roomId,
       daycare: daycareId,
       parent: parentId,
+      child: childId,
       staff: staffId,
       sender: user.id,
       text: text.trim()
@@ -190,6 +196,11 @@ const StaffChatWindow = ({
   }
 
   const startCall = async (type) => {
+
+       console.log("START CALL")
+  console.log("roomId:", roomId)
+  console.log("otherUserId:", otherUserId)
+  console.log("userId:", user.id)
 
     pendingIceCandidatesRef.current = []
 
@@ -494,6 +505,7 @@ const StaffChatWindow = ({
 
     socket.on('staffCallEnded', () => {
       endCall(false)
+      setCallEndedMessage('The other user has ended the call.')
     })
 
     socket.on('staffCallRejected', () => {
@@ -508,7 +520,7 @@ const StaffChatWindow = ({
       socket.off('staffCallRejected')
     }
 
-  }, [user.id])
+  }, [user.id, roomId, otherUserId])
 
   return (
     <div className="flex flex-col h-[32rem] rounded-[2rem] bg-white/90 backdrop-blur-sm border border-white/60 shadow-[0_20px_50px_-12px_rgba(74,144,164,0.15)] overflow-hidden font-nunito relative">
@@ -616,7 +628,15 @@ const StaffChatWindow = ({
           )
         })}
 
+
+
         <div ref={messagesEndRef} />
+
+        {callEndedMessage && (
+  <div className="text-center text-sm text-gray-500 py-2">
+    {callEndedMessage}
+  </div>
+)}
 
       </div>
 

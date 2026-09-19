@@ -6,7 +6,7 @@ const { getMessages } = require('../controllers/messageController')
 const { protect } = require('../middlewares/authMiddleware')
 const checkBlockedUser = require('../middlewares/checkBlockedUser')
 
-router.get('/:daycareId/:parentId', protect,  getMessages)
+router.get('/:daycareId/:parentId/:childId', protect,  getMessages)
 
 module.exports = router
 

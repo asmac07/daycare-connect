@@ -11,6 +11,7 @@ const ParentStaffMessages = () => {
   const [staffList, setStaffList] = useState([])
   const [selectedStaff, setSelectedStaff] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedChild, setSelectedChild] = useState(null)
 
   useEffect(() => {
 
@@ -40,6 +41,26 @@ const ParentStaffMessages = () => {
 
   }, [])
 
+  const groupedStaff = staffList.reduce((acc, item) => {
+
+      const staffId = item.assignedStaff._id
+
+      if (!acc[staffId]) {
+        acc[staffId] = {
+          ...item,
+          children: []
+        }
+      }
+
+      if (item.child) {
+        acc[staffId].children.push(item.child)
+      }
+
+      return acc
+
+    }, {})
+
+    const uniqueStaffList = Object.values(groupedStaff)
 
   if (loading) {
     return (
@@ -78,11 +99,14 @@ const ParentStaffMessages = () => {
 
             <div className="space-y-2">
 
-              {staffList.map((item) => (
+              {uniqueStaffList.map((item) => (
 
                 <button
                   key={item._id}
-                  onClick={() => setSelectedStaff(item)}
+                   onClick={() => {
+                    setSelectedStaff(item)
+                    setSelectedChild(null)
+                  }}
                   className={`w-full text-left p-3 rounded-xl transition ${
                     selectedStaff?._id === item._id
                       ? 'bg-blue-100'
@@ -98,9 +122,26 @@ const ParentStaffMessages = () => {
                     {item.assignedStaff.designation || 'Staff'}
                   </p>
 
-                  <p className="text-xs text-gray-400">
-                    Child: {item.child?.name || 'Child'}
-                  </p>
+                 <div className="mt-2 space-y-1">
+                    {item.children.map((child) => (
+                      <button
+                        key={child._id}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedStaff(item)
+                          setSelectedChild(child)
+                        }}
+                        className={`w-full text-left px-2 py-1 rounded-lg text-xs ${
+                          selectedChild?._id === child._id &&
+                          selectedStaff?.assignedStaff._id === item.assignedStaff._id
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                      >
+                        Child: {child.name}
+                      </button>
+                    ))}
+                  </div>
 
                 </button>
 
@@ -117,18 +158,19 @@ const ParentStaffMessages = () => {
 
         <div className="md:col-span-2">
 
-          {selectedStaff ? (
+         {selectedStaff && selectedChild ? (
 
-     <StaffChatWindow
-            daycareId={selectedStaff.daycare._id}
-            parentId={user.id}
-            staffId={selectedStaff.assignedStaff._id}
-            otherUserName={selectedStaff.assignedStaff.name}
-            designation={selectedStaff.assignedStaff.designation}
-            daycareName={selectedStaff.daycare.name}
-            childName={selectedStaff.child?.name}
+            <StaffChatWindow
+              daycareId={selectedStaff.daycare._id}
+              parentId={user.id}
+              staffId={selectedStaff.assignedStaff._id}
+              childId={selectedChild?._id}
+              otherUserName={selectedStaff.assignedStaff.name}
+              designation={selectedStaff.assignedStaff.designation}
+              daycareName={selectedStaff.daycare.name}
+              childName={selectedChild?.name}
             />
-            
+
 
           ) : (
 

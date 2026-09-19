@@ -57,8 +57,8 @@ const linksByRole = {
     { label: 'Dashboard', path: '/staff/dashboard', icon: LayoutDashboard },
     { label: 'Assigned Children', path: '/staff/assigned-children', icon: Users },
     { label: 'Parent Chats', path: '/staff/parent-chats', icon: MessageCircle },
-    { label: 'Video Call Requests', path: '/staff/video-calls', icon: Video },
-    { label: 'Profile', path: '/staff/profile', icon: User },
+    // { label: 'Video Call Requests', path: '/staff/video-calls', icon: Video },
+    // { label: 'Profile', path: '/staff/profile', icon: User },
   ],
 
   }

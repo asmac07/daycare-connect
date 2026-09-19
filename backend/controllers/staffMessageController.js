@@ -5,7 +5,7 @@ const { ENROLLMENT_STATUS } = require('../constants')
 
 const getStaffMessages = async (req, res) => {
   try {
-    const { daycareId, parentId, staffId } = req.params
+    const { daycareId, parentId, staffId, childId } = req.params
 
     const enrollment = await Enrollment.findOne({
       daycare: daycareId,
@@ -24,7 +24,9 @@ const getStaffMessages = async (req, res) => {
     const messages = await StaffMessage.find({
       daycare: daycareId,
       parent: parentId,
-      staff: staffId
+      staff: staffId,
+      child:childId
+
     }).sort({ createdAt: 1 })
 
     res.status(200).json({

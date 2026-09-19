@@ -15,6 +15,12 @@ const staffMessageSchema = new mongoose.Schema({
     required: true
   },
 
+  child: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Child',
+      required: true
+    },
+
   staff: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -29,7 +35,7 @@ const staffMessageSchema = new mongoose.Schema({
 
   text: {
     type: String,
-    defualt : ''
+    default : ''
   },
   messageType: {
       type: String,

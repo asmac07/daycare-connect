@@ -10,7 +10,7 @@ const socket = io(import.meta.env.VITE_SOCKET_URL, {
   }
 })
 
-const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
+const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName, childId }) => {
 
   const { user } = useSelector((state) => state.auth)
 
@@ -26,7 +26,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
   const [uploading, setUploading] = useState(false)
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false)
 
-  const roomId = `${daycareId}_${parentId}`
+  const roomId = `${daycareId}_${parentId}_${childId}`
 
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
@@ -39,7 +39,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
     socket.emit('userOnline')
 
     axiosInstance
-      .get(`/messages/${daycareId}/${parentId}`)
+      .get(`/messages/${daycareId}/${parentId}/${childId}`)
       .then((res) => {
         setMessages(res.data.data)
       })
@@ -54,19 +54,22 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
     }
 
     socket.on('newMessage', (message) => {
-      const messageDaycareId = String(message.daycare)
-      const messageParentId = String(message.parent)
+        const messageDaycareId = String(message.daycare)
+        const messageParentId = String(message.parent)
+        const messageChildId = String(message.child)
 
-      const currentDaycareId = String(daycareId)
-      const currentParentId = String(parentId)
+        const currentDaycareId = String(daycareId)
+        const currentParentId = String(parentId)
+        const currentChildId = String(childId)
 
-      if (
-        messageDaycareId === currentDaycareId &&
-        messageParentId === currentParentId
-      ) {
-        setMessages((prev) => [...prev, message])
-      }
-    })
+        if (
+          messageDaycareId === currentDaycareId &&
+          messageParentId === currentParentId &&
+          messageChildId === currentChildId
+        ) {
+          setMessages((prev) => [...prev, message])
+        }
+      })
 
     socket.on('userStatus', (data) => {
       if (data.userId === otherUserId) {
@@ -103,7 +106,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
       socket.off('userStoppedTyping')
       socket.off('messageRead')
     }
-  }, [daycareId, parentId, otherUserId])
+  }, [daycareId, parentId, childId, otherUserId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -139,6 +142,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
       roomId,
       daycare: daycareId,
       parent: parentId,
+      child: childId,
       sender: user.id,
       text: text.trim(),
       messageType: 'text',
@@ -184,6 +188,7 @@ const ChatWindow = ({ daycareId, parentId, ownerId, otherUserName }) => {
         roomId,
         daycare: daycareId,
         parent: parentId,
+        child:childId,
         sender: user.id,
         text: '',
         messageType,
