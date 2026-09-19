@@ -96,10 +96,8 @@ const OwnerWallet = () => {
     }
   }
 
-  // -----------------------------------------
-  // Withdrawal Status UI
-  // -----------------------------------------
-
+  
+    //withdrwal status
   const getPayoutStatus = (status) => {
     switch (status?.toUpperCase()) {
       case 'PENDING':
@@ -139,9 +137,7 @@ const OwnerWallet = () => {
     }
   }
 
-  // -----------------------------------------
-  // Summary values
-  // -----------------------------------------
+  //summary values
 
   const withdrawalTransactions = transactions.filter(
     (transaction) => transaction.reason === 'WITHDRAWAL'
@@ -179,9 +175,7 @@ const OwnerWallet = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-5 md:p-7 lg:p-8">
 
-      {/* -----------------------------------------
-          Header
-      ----------------------------------------- */}
+      
 
       <div className="mb-7">
         <h1 className="text-2xl md:text-3xl font-bold text-dc-ink font-baloo">
@@ -193,9 +187,6 @@ const OwnerWallet = () => {
         </p>
       </div>
 
-      {/* -----------------------------------------
-          Error
-      ----------------------------------------- */}
 
       {error && (
         <div className="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
@@ -204,10 +195,8 @@ const OwnerWallet = () => {
         </div>
       )}
 
-      {/* -----------------------------------------
-          Wallet Balance Card
-      ----------------------------------------- */}
-
+    
+        
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-dc-blue to-dc-green p-6 md:p-8 text-white shadow-lg mb-7">
 
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
@@ -252,9 +241,7 @@ const OwnerWallet = () => {
         </div>
       </div>
 
-      {/* -----------------------------------------
-          Wallet Information Cards
-      ----------------------------------------- */}
+      
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
 
@@ -325,7 +312,7 @@ const OwnerWallet = () => {
 
         </div>
 
-        {/* Successful Withdrawals */}
+        
 
         <div className="bg-white rounded-2xl border border-dc-border shadow-sm p-5">
 
@@ -351,9 +338,7 @@ const OwnerWallet = () => {
 
       </div>
 
-      {/* -----------------------------------------
-          Transaction History
-      ----------------------------------------- */}
+      
 
       <div className="bg-white rounded-2xl border border-dc-border shadow-sm">
 
@@ -466,9 +451,7 @@ const OwnerWallet = () => {
                       className="hover:bg-slate-50 transition"
                     >
 
-                      {/* -----------------------------------------
-                          Transaction
-                      ----------------------------------------- */}
+                      
 
                       <td className="px-6 py-4">
 
@@ -518,10 +501,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-                      {/* -----------------------------------------
-                          Type
-                      ----------------------------------------- */}
-
+                      
                       <td className="px-6 py-4">
 
                         <span
@@ -536,9 +516,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-                      {/* -----------------------------------------
-                          Date
-                      ----------------------------------------- */}
+                     
 
                       <td className="px-6 py-4">
 
@@ -552,10 +530,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-                      {/* -----------------------------------------
-                          Status
-                      ----------------------------------------- */}
-
+                     
                       <td className="px-6 py-4 text-center">
 
                         {isWithdrawal ? (
@@ -580,9 +555,6 @@ const OwnerWallet = () => {
 
                       </td>
 
-                      {/* -----------------------------------------
-                          Amount
-                      ----------------------------------------- */}
 
                       <td
                         className={`px-6 py-4 text-right font-bold ${
@@ -598,9 +570,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-                      {/* -----------------------------------------
-                          Balance
-                      ----------------------------------------- */}
+                     
 
                       <td className="px-6 py-4 text-right font-semibold text-dc-ink">
 
@@ -622,9 +592,7 @@ const OwnerWallet = () => {
 
       </div>
 
-      {/* -----------------------------------------
-          Withdraw Modal
-      ----------------------------------------- */}
+      
 
       {showWithdrawModal && (
 

@@ -9,6 +9,9 @@ const mongoose = require('mongoose')
 const Wallet = require('../models/Wallet')
 const WalletTransaction = require('../models/WalletTransaction')
 
+console.log("Razorpay Key ID:", process.env.RAZORPAY_KEY_ID)
+console.log("Razorpay Secret exists:", !!process.env.RAZORPAY_KEY_SECRET)
+
     // this connect backend to razorpay accnt
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
