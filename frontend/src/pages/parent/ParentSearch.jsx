@@ -1,7 +1,7 @@
-
 import { useEffect, useState } from 'react'
 import axiosInstance from '../../api/axiosInstance'
 import { toast } from 'react-toastify'
+import { Search, MapPin, X, AlertTriangle, Star } from 'lucide-react'
 
 const ParentSearch = () => {
   // Enrollment states
@@ -16,6 +16,8 @@ const ParentSearch = () => {
   // Daycare states
   const [daycares, setDaycares] = useState([])
   const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchMode, setSearchMode] = useState('nearby')
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -73,6 +75,52 @@ const ParentSearch = () => {
     }
   }
 
+  const fetchSearchedDaycares = async () => {
+    if (!searchTerm.trim()) {
+      toast.warning('Please enter a daycare name or location')
+      return
+    }
+
+    try {
+      setLoading(true)
+
+      const response = await axiosInstance.get('/daycare/search-daycare', {
+        params: {
+          search: searchTerm,
+          page,
+          limit
+        }
+      })
+
+      const data = response.data
+
+      setDaycares(data.data || [])
+      setTotal(data.total || 0)
+      setTotalPages(data.totalPages || 1)
+
+    } catch (error) {
+      console.error('Failed to search daycares:', error)
+
+      toast.error(
+        error.response?.data?.message || 'Failed to search daycares'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+
+    if (!searchTerm.trim()) {
+      toast.warning('Please enter a daycare name or location')
+      return
+    }
+
+    setSearchMode('search')
+    setPage(1)
+  }
+
   const fetchChildren = async () => {
     try {
       const response = await axiosInstance.get('/child/myChildren')
@@ -89,8 +137,12 @@ const ParentSearch = () => {
   }, [])
 
   useEffect(() => {
-    fetchNearbyDaycares()
-  }, [location, page])
+    if (searchMode === 'nearby') {
+      fetchNearbyDaycares()
+    } else {
+      fetchSearchedDaycares()
+    }
+  }, [location, page, searchMode])
 
   const getGoogleMapsLink = (daycare) => {
     if (!daycare.location?.coordinates) return '#'
@@ -98,29 +150,29 @@ const ParentSearch = () => {
     return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
   }
 
- const handleEnroll = (daycare) => {
-  setSelectedDaycare(daycare)
-  setSelectedChild('')
-  setAgeGroup('')
-  setPackageType('')
-  setStartDate('')
-  setEndDate('')
-  setAvailability(null)
-  setAvailabilityError('')
-}
+  const handleEnroll = (daycare) => {
+    setSelectedDaycare(daycare)
+    setSelectedChild('')
+    setAgeGroup('')
+    setPackageType('')
+    setStartDate('')
+    setEndDate('')
+    setAvailability(null)
+    setAvailabilityError('')
+  }
 
- const closeEnrollmentModal = () => {
-  if (enrolling) return
+  const closeEnrollmentModal = () => {
+    if (enrolling) return
 
-  setSelectedDaycare(null)
-  setSelectedChild('')
-  setAgeGroup('')
-  setPackageType('')
-  setStartDate('')
-  setEndDate('')
-  setAvailability(null)
-  setAvailabilityError('')
-}
+    setSelectedDaycare(null)
+    setSelectedChild('')
+    setAgeGroup('')
+    setPackageType('')
+    setStartDate('')
+    setEndDate('')
+    setAvailability(null)
+    setAvailabilityError('')
+  }
 
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault()
@@ -142,20 +194,20 @@ const ParentSearch = () => {
       return
     }
 
-      if (!startDate) {
-        toast.warning('Please select a start date')
-        return
-      }
+    if (!startDate) {
+      toast.warning('Please select a start date')
+      return
+    }
 
-      if (!endDate) {
-        toast.warning('Please select an end date')
-        return
-      }
+    if (!endDate) {
+      toast.warning('Please select an end date')
+      return
+    }
 
-      if (new Date(endDate) < new Date(startDate)) {
-        toast.warning('End date cannot be before start date')
-        return
-      }
+    if (new Date(endDate) < new Date(startDate)) {
+      toast.warning('End date cannot be before start date')
+      return
+    }
 
     try {
       setEnrolling(true)
@@ -178,18 +230,18 @@ const ParentSearch = () => {
       setStartDate('')
       setEndDate('')
 
-    } 
+    }
     catch (error) {
-          console.error('Enrollment request error:', error)
+      console.error('Enrollment request error:', error)
 
-          const message =
-            error.response?.data?.message ||
-            'Failed to submit enrollment request'
+      const message =
+        error.response?.data?.message ||
+        'Failed to submit enrollment request'
 
-          setAvailabilityError(message)
+      setAvailabilityError(message)
 
-          toast.error(message)
-        }
+      toast.error(message)
+    }
 
     finally {
       setEnrolling(false)
@@ -197,65 +249,119 @@ const ParentSearch = () => {
   }
 
   const checkAvailability = async (start, end) => {
-  if (
-    !selectedDaycare ||
-    !start ||
-    !end ||
-    new Date(end) < new Date(start)
-  ) {
-    setAvailability(null)
-    return
-  }
+    if (
+      !selectedDaycare ||
+      !start ||
+      !end ||
+      new Date(end) < new Date(start)
+    ) {
+      setAvailability(null)
+      return
+    }
 
-  try {
-    setCheckingAvailability(true)
-    setAvailabilityError('')
+    try {
+      setCheckingAvailability(true)
+      setAvailabilityError('')
 
-    const response = await axiosInstance.get(
-      '/enrollment/check-availability',
-      {
-        params: {
-          daycareId: selectedDaycare._id,
-          startDate: start,
-          endDate: end
+      const response = await axiosInstance.get(
+        '/enrollment/check-availability',
+        {
+          params: {
+            daycareId: selectedDaycare._id,
+            startDate: start,
+            endDate: end
+          }
         }
-      }
-    )
+      )
 
-    setAvailability(response.data)
+      setAvailability(response.data)
 
-  } catch (error) {
-    console.error('Availability check error:', error)
+    } catch (error) {
+      console.error('Availability check error:', error)
 
-    const message =
-      error.response?.data?.message ||
-      'Unable to check seat availability'
+      const message =
+        error.response?.data?.message ||
+        'Unable to check seat availability'
 
-    setAvailability(null)
-    setAvailabilityError(message)
+      setAvailability(null)
+      setAvailabilityError(message)
 
-  } finally {
-    setCheckingAvailability(false)
+    } finally {
+      setCheckingAvailability(false)
+    }
   }
-}
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-dc-mist via-dc-mist-2 to-dc-mist p-8 font-nunito">
+    <div className="min-h-screen bg-gradient-to-br from-dc-mist via-dc-mist-2 to-dc-mist p-4 sm:p-8 font-nunito">
       <div className="max-w-6xl mx-auto">
 
         {/* HEADER */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold font-baloo text-dc-ink">Nearby Daycares</h1>
-          <p className="text-sm text-dc-muted mt-1">Find approved daycares near your location.</p>
+          <h1 className="text-xl sm:text-2xl font-semibold font-baloo text-dc-ink">
+            Find a Daycare
+          </h1>
+
+          <p className="text-sm text-dc-muted mt-1">
+            Search for a daycare by name or location, or find nearby daycares.
+          </p>
         </div>
 
-        {location && (
+        {/* SEARCH */}
+        <form
+          onSubmit={handleSearch}
+          className="bg-white/90 rounded-2xl p-4 mb-6 shadow-sm"
+        >
+          <div className="flex flex-col sm:flex-row gap-3">
+
+            <div className="flex-1 relative min-w-0">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dc-muted">
+                <Search size={16} strokeWidth={2.2} />
+              </span>
+
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search daycare by name or location..."
+                className="w-full rounded-full pl-11 pr-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue transition"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                className="flex-1 sm:flex-none px-6 py-3 rounded-full bg-gradient-to-br from-dc-blue to-dc-green text-white text-sm font-semibold hover:opacity-90 transition whitespace-nowrap"
+              >
+                Search
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchMode('nearby')
+                  setSearchTerm('')
+                  setPage(1)
+                }}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-6 py-3 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold hover:bg-dc-border/40 transition whitespace-nowrap"
+              >
+                <MapPin size={14} strokeWidth={2.4} />
+                Nearby
+              </button>
+            </div>
+
+          </div>
+        </form>
+
+        {searchMode === 'nearby' && location && (
           <div className="bg-white/90 rounded-2xl p-4 mb-6 shadow-sm">
-            <div className="text-sm text-dc-muted">📍 Location detected</div>
+            <div className="flex items-center gap-1.5 text-sm text-dc-muted">
+              <MapPin size={14} strokeWidth={2.4} className="text-dc-blue flex-shrink-0" />
+              Showing daycares near your location
+            </div>
           </div>
         )}
 
-        {/* lOADING */}
+        {/* LOADING */}
         {loading && (
           <div className="text-center py-10">
             <p className="text-dc-muted">Finding nearby daycares...</p>
@@ -265,28 +371,32 @@ const ParentSearch = () => {
         {/* NO DATA */}
         {!loading && daycares.length === 0 && (
           <div className="bg-white rounded-2xl p-10 text-center">
-            <p className="text-dc-muted">No nearby daycares found.</p>
+            <p className="text-dc-muted">
+              {searchMode === 'nearby'
+                ? 'No nearby daycares found.'
+                : 'No daycares found for your search.'}
+            </p>
           </div>
         )}
 
         {/* DAYCARE LIST */}
         {!loading && daycares.length > 0 && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
               {daycares.map((daycare) => (
                 <div
                   key={daycare._id}
-                  className="bg-white rounded-[2rem] p-6 shadow-[0_15px_40px_-15px_rgba(74,144,164,0.2)] border border-white"
+                  className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-[0_15px_40px_-15px_rgba(74,144,164,0.2)] border border-white"
                 >
                   <div className="mb-4">
-                    <h2 className="text-xl font-semibold font-baloo text-dc-ink">{daycare.name}</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink break-words">{daycare.name}</h2>
                     <p className="text-sm text-dc-muted">
                       {daycare.location?.address || daycare.location?.city || 'Location not available'}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="text-yellow-500">⭐</span>
+                    <Star size={16} strokeWidth={2.2} className="text-amber-400 fill-amber-400" />
                     <span className="font-semibold text-dc-ink">
                       {daycare.averageRating ? Number(daycare.averageRating).toFixed(1) : 'No rating'}
                     </span>
@@ -295,7 +405,7 @@ const ParentSearch = () => {
                     )}
                   </div>
 
-                  <div className="space-y-2 text-sm text-dc-muted mb-5">
+                  <div className="space-y-2 text-sm text-dc-muted mb-5 break-words">
                     {daycare.description && (
                       <p><strong className="text-dc-ink">About:</strong> {daycare.description}</p>
                     )}
@@ -314,13 +424,15 @@ const ParentSearch = () => {
                   </div>
 
                   <div className="flex flex-wrap gap-3">
+
                     
-                    <a href={getGoogleMapsLink(daycare)}
+                     <a href={getGoogleMapsLink(daycare)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold hover:bg-dc-border/40 transition"
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold hover:bg-dc-border/40 transition"
                     >
-                      📍 View on Map
+                      <MapPin size={14} strokeWidth={2.4} />
+                      View on Map
                     </a>
 
                     <button
@@ -336,17 +448,17 @@ const ParentSearch = () => {
             </div>
 
             {/* PAGINATION */}
-            <div className="flex justify-between items-center mt-8 bg-white rounded-2xl p-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-8 bg-white rounded-2xl p-4">
               <button
                 type="button"
                 onClick={() => setPage((prev) => prev - 1)}
                 disabled={page === 1}
-                className="px-5 py-2 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold disabled:opacity-40 transition"
+                className="w-full sm:w-auto px-5 py-2 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold disabled:opacity-40 transition"
               >
                 ← Previous
               </button>
 
-              <div className="text-sm text-dc-muted">
+              <div className="text-sm text-dc-muted text-center whitespace-nowrap">
                 Page <strong className="text-dc-ink">{page}</strong> of <strong className="text-dc-ink">{totalPages}</strong>
                 <span className="ml-2">({total} daycares)</span>
               </div>
@@ -355,7 +467,7 @@ const ParentSearch = () => {
                 type="button"
                 onClick={() => setPage((prev) => prev + 1)}
                 disabled={page >= totalPages}
-                className="px-5 py-2 rounded-full bg-dc-blue text-white text-sm font-semibold disabled:opacity-40 transition"
+                className="w-full sm:w-auto px-5 py-2 rounded-full bg-dc-blue text-white text-sm font-semibold disabled:opacity-40 transition"
               >
                 Next →
               </button>
@@ -366,37 +478,39 @@ const ParentSearch = () => {
 
       {/* ENROLLMENT MODAL */}
       {selectedDaycare && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dc-ink/40 backdrop-blur-sm px-4">
-          <div className="w-full max-w-lg bg-white rounded-[2rem] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dc-ink/40 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white rounded-[2rem] p-5 sm:p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
 
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-xl font-semibold font-baloo text-dc-ink">Enroll Your Child</h2>
-                <p className="text-sm text-dc-muted mt-1">{selectedDaycare.name}</p>
+            <div className="flex items-start justify-between mb-5 gap-3">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink">Enroll Your Child</h2>
+                <p className="text-sm text-dc-muted mt-1 truncate">{selectedDaycare.name}</p>
               </div>
 
               <button
                 type="button"
                 onClick={closeEnrollmentModal}
                 disabled={enrolling}
-                className="w-9 h-9 rounded-full bg-dc-hover text-dc-muted hover:bg-dc-border/40 disabled:opacity-50 transition"
+                className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-dc-hover text-dc-muted hover:bg-dc-border/40 disabled:opacity-50 transition"
               >
-                ✕
+                <X size={16} strokeWidth={2.3} />
               </button>
             </div>
 
             <div className="bg-dc-field rounded-2xl p-4 mb-5 text-dc-ink">
               <p className="text-sm"><strong>Daycare:</strong> {selectedDaycare.name}</p>
-              <p className="text-sm mt-1">
-                <strong>Rating:</strong> ⭐ {selectedDaycare.averageRating ? Number(selectedDaycare.averageRating).toFixed(1) : 'No rating'}
+              <p className="text-sm mt-1 flex items-center gap-1">
+                <strong>Rating:</strong>
+                <Star size={13} strokeWidth={2.2} className="text-amber-400 fill-amber-400" />
+                {selectedDaycare.averageRating ? Number(selectedDaycare.averageRating).toFixed(1) : 'No rating'}
               </p>
 
-           <p className="text-sm mt-1">
-              <strong>Total Capacity:</strong>{' '}
-              {selectedDaycare.seatCapacity ?? 'Not available'}
-            </p>
+              <p className="text-sm mt-1">
+                <strong>Total Capacity:</strong>{' '}
+                {selectedDaycare.seatCapacity ?? 'Not available'}
+              </p>
 
-           {checkingAvailability && (
+              {checkingAvailability && (
                 <p className="text-sm mt-2 text-dc-muted">
                   Checking seat availability...
                 </p>
@@ -472,26 +586,25 @@ const ParentSearch = () => {
                     Start Date
                   </label>
 
-                 <input
+                  <input
                     type="date"
                     value={startDate}
-                   onChange={(e) => {
-                          const value = e.target.value
-                          setStartDate(value)
-                          setAvailabilityError('')
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setStartDate(value)
+                      setAvailabilityError('')
 
-                          if (endDate) {
-                            checkAvailability(value, endDate)
-                          } else {
-                            setAvailability(null)
-                          }
-                        }}
+                      if (endDate) {
+                        checkAvailability(value, endDate)
+                      } else {
+                        setAvailability(null)
+                      }
+                    }}
                     min={new Date().toISOString().split('T')[0]}
                     disabled={enrolling}
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                   />
                 </div>
-
 
                 {/* End Date */}
                 <div>
@@ -499,20 +612,20 @@ const ParentSearch = () => {
                     End Date
                   </label>
 
-                 <input
+                  <input
                     type="date"
                     value={endDate}
-                        onChange={(e) => {
-                              const value = e.target.value
-                              setEndDate(value)
-                              setAvailabilityError('')
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setEndDate(value)
+                      setAvailabilityError('')
 
-                              if (startDate) {
-                                checkAvailability(startDate, value)
-                              } else {
-                                setAvailability(null)
-                              }
-                            }}
+                      if (startDate) {
+                        checkAvailability(startDate, value)
+                      } else {
+                        setAvailability(null)
+                      }
+                    }}
                     min={startDate || new Date().toISOString().split('T')[0]}
                     disabled={enrolling}
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
@@ -524,14 +637,14 @@ const ParentSearch = () => {
               {availabilityError && (
                 <div className="bg-dc-error-bg border border-dc-error-text/20 rounded-2xl p-4">
                   <div className="flex items-start gap-3">
-                    <span className="text-lg">⚠️</span>
+                    <AlertTriangle size={18} strokeWidth={2.2} className="text-dc-error-text flex-shrink-0 mt-0.5" />
 
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold text-dc-error-text">
                         Seats are not available for the selected dates
                       </p>
 
-                      <p className="text-xs text-dc-muted mt-1">
+                      <p className="text-xs text-dc-muted mt-1 break-words">
                         {availabilityError}
                       </p>
 
@@ -543,7 +656,7 @@ const ParentSearch = () => {
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-3">
                 <button
                   type="button"
                   onClick={closeEnrollmentModal}

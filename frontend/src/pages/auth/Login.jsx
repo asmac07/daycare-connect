@@ -1,5 +1,3 @@
-
-
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
 import { useNavigate, Link } from 'react-router-dom'
@@ -21,35 +19,37 @@ const Login = () => {
   const navigate = useNavigate()
 
   const redirectByRole = (role) => {
-        switch (role) {
-          case 'admin':
-            return '/admin/dashboard'
+    switch (role) {
+      case 'admin':
+        return '/admin/dashboard'
 
-          case 'owner':
-            return '/owner/dashboard'
+      case 'owner':
+        return '/owner/dashboard'
 
-          case 'parent':
-            return '/parent/dashboard'
+      case 'parent':
+        return '/parent/dashboard'
 
-          case 'staff':
-            return '/staff/dashboard'
+      case 'staff':
+        return '/staff/dashboard'
 
-          default:
-            return '/login'
-        }}
+      default:
+        return '/login'
+    }
+  }
+
   const validateForm = () => {
-  setError('')
+    setError('')
 
-        if (!isValidEmail(email.trim())) {
-          toast.warning('Please enter a valid email')
-          return false
-        }
-        if (!password) {
-          toast.warning('Password is required')
-          return false
-        }
-  return true
-}
+    if (!isValidEmail(email.trim())) {
+      toast.warning('Please enter a valid email')
+      return false
+    }
+    if (!password) {
+      toast.warning('Password is required')
+      return false
+    }
+    return true
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -64,13 +64,13 @@ const Login = () => {
       dispatch(loginSuccess({
         user: response.data.data,
         token: response.data.accessToken,
-        
+
       }))
 
-        navigate(redirectByRole(response.data.data.role) , { replace: true })
-      }
+      navigate(redirectByRole(response.data.data.role), { replace: true })
+    }
 
-     catch (error) {
+    catch (error) {
       toast.error(error.response?.data?.message || 'Login failed')
     }
   }
@@ -165,55 +165,63 @@ const Login = () => {
           </button>
         </form>
 
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-dc-border" />
+          <span className="text-xs font-semibold text-dc-muted">OR CONTINUE WITH</span>
+          <div className="flex-1 h-px bg-dc-border" />
+        </div>
+
+        {/* Google Login */}
+        <div className="flex justify-center">
+          <div className="w-full [&>div]:!w-full [&_iframe]:!w-full">
+            <GoogleLogin
+              onSuccess={async (credentialResponse) => {
+                try {
+                  const response = await axiosInstance.post('/auth/google', {
+                    token: credentialResponse.credential
+                  })
+
+                  if (response.data.isNewUser) {
+                    navigate('/selectRole', {
+                      state: {
+                        token: credentialResponse.credential,
+                        name: response.data.data.name,
+                        email: response.data.data.email
+                      }
+                    })
+                    return
+                  }
+
+                  dispatch(loginSuccess({
+                    user: response.data.data,
+                    token: response.data.accessToken,
+                  }))
+
+                  navigate(getDashboardRoute(response.data.data.role))
+
+                }
+                catch (error) {
+                  console.log('Google login error:', error)
+                  console.log('Response:', error.response?.data)
+
+                  toast.error(error.response?.data?.message || 'Google login failed')
+                }
+              }}
+              onError={() => setError('Google login failed')}
+            />
+          </div>
+        </div>
+
         <p className="text-center text-sm mt-6 text-dc-muted">
           Don&apos;t have an account?{' '}
           <Link to={ROUTES.REGISTER} className="font-semibold hover:underline text-dc-blue">
             Register
           </Link>
         </p>
-    
-<div className="mt-4">
-  <GoogleLogin
-    onSuccess={async (credentialResponse) => {
-      try {
-        const response = await axiosInstance.post('/auth/google', {
-          token: credentialResponse.credential
-        })
 
-        if (response.data.isNewUser) {
-        // New user — send to role selection, carrying the token + basic info
-        navigate('/selectRole', {
-          state: {
-            token: credentialResponse.credential,
-            name: response.data.data.name,
-            email: response.data.data.email
-          }
-        })
-        return
-      }
-
-        dispatch(loginSuccess({
-          user: response.data.data,
-          token: response.data.accessToken,
-        }))
-      
-        navigate(getDashboardRoute(response.data.data.role))
-
-      }
-       catch (error) {
-          console.log('Google login error:', error)
-           console.log('Response:', error.response?.data)
-
-        toast.error(error.response?.data?.message || 'Google login failed')
-      }
-    }}
-    onError={() => setError('Google login failed')}
-  />
-</div>
       </div>
 
-
-      
     </div>
   )
 }

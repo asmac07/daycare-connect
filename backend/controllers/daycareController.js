@@ -22,12 +22,23 @@ const createDaycare = async (req, res) => {
           })
         }
 
-        if (!seatCapacity || seatCapacity <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Seat capacity must be a positive number'
-          })
-        }
+        const capacity = Number(seatCapacity)
+
+    
+            if (
+              seatCapacity === undefined ||
+              seatCapacity === null ||
+              seatCapacity === '' ||
+              !Number.isInteger(capacity) ||
+              capacity <= 0 ||
+              capacity > 50
+            ) {
+              return res.status(400).json({
+                success: false,
+                message: 'Seat capacity must be a whole number between 1 and 50'
+              })
+            }
+        
 
         if (
           !location ||
@@ -262,6 +273,67 @@ const searchNearbyDaycare = async (req, res) => {
   }
 }
 
+const searchDaycare = async (req, res) => {
+  try {
+    const {
+      search = '',
+      page = 1,
+      limit = 5
+    } = req.query
+
+    const pageNumber = Number(page)
+    const limitNumber = Number(limit)
+
+    const skip = (pageNumber - 1) * limitNumber
+
+    const filter = {
+      verificationStatus: DAYCARE_STATUS.APPROVED,
+      isBlocked: false
+    }
+
+    if (search.trim()) {
+      filter.$or = [
+        {
+          name: {
+            $regex: search.trim(),
+            $options: 'i'
+          }
+        },
+        {
+          address: {
+            $regex: search.trim(),
+            $options: 'i'
+          }
+        }
+      ]
+    }
+
+    const daycares = await Daycare.find(filter)
+      .skip(skip)
+      .limit(limitNumber)
+
+    const total = await Daycare.countDocuments(filter)
+
+    res.status(200).json({
+      success: true,
+      count: daycares.length,
+      total,
+      page: pageNumber,
+      limit: limitNumber,
+      totalPages: Math.ceil(total / limitNumber),
+      data: daycares
+    })
+
+  } catch (error) {
+    console.error(error)
+
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
 
 const getApprovedDaycares = async (req, res) => {
   try {
@@ -285,5 +357,6 @@ const getApprovedDaycares = async (req, res) => {
 module.exports = { createDaycare ,
                     getMyDaycare ,
                     updateDaycare,
+                    searchDaycare,
                     searchNearbyDaycare, getApprovedDaycares
                  } 

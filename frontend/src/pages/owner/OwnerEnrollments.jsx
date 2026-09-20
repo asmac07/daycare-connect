@@ -625,25 +625,23 @@ const OwnerEnrollments = () => {
                   Approve
                 </button>
 
-
-                <button
-                  disabled={
-                    selectedEnrollment.enrollmentStatus ===
-                    ENROLLMENT_STATUS.REJECTED
-                  }
-                  onClick={() => setShowRejectModal(true)}
-                  className={`px-5 py-2 rounded-full font-semibold text-sm text-white transition ${
-                    selectedEnrollment.enrollmentStatus ===
-                    ENROLLMENT_STATUS.REJECTED
-
-                      ? 'bg-dc-error-text/40 cursor-not-allowed'
-
-                      : 'bg-dc-error-text hover:opacity-90'
-                  }`}
-                >
-                  Reject
-                </button>
-
+                  <button
+                      disabled={
+                        selectedEnrollment.enrollmentStatus === ENROLLMENT_STATUS.REJECTED ||
+                        selectedEnrollment.paymentStatus === 'paid'
+                      }
+                      onClick={() => setShowRejectModal(true)}
+                      className={`px-5 py-2 rounded-full font-semibold text-sm text-white transition ${
+                        selectedEnrollment.enrollmentStatus === ENROLLMENT_STATUS.REJECTED ||
+                        selectedEnrollment.paymentStatus === 'paid'
+                          ? 'bg-dc-error-text/40 cursor-not-allowed'
+                          : 'bg-dc-error-text hover:opacity-90'
+                      }`}
+                    >
+                      Reject
+                    </button>
+               
+               
                  <button
                     onClick={() =>
                       handleDeleteEnrollment(selectedEnrollment._id)

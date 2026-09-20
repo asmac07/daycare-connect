@@ -142,7 +142,7 @@ const ParentMessages = () => {
                 parentId={user.id}
                 childId={selectedChild._id}
                 ownerId={selectedDaycare.owner?._id || selectedDaycare.owner}
-                otherUserName={selectedDaycare.owner?.name || 'Daycare Owner'}
+                otherUserName={selectedDaycare.name || 'Daycare'}
               />
             ) : (
               <div className="bg-white/90 backdrop-blur-sm rounded-[2rem] shadow-[0_20px_50px_-12px_rgba(74,144,164,0.15)] border border-white/60 p-10 text-center text-dc-muted text-sm h-[32rem] flex items-center justify-center">

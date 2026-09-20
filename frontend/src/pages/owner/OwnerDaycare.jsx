@@ -166,6 +166,8 @@ const OwnerDaycare = () => {
                       <input
                         type="number"
                         min="1"
+                        max="50"
+                        step="1"
                         value={seatCapacity}
                         onChange={(e) => setSeatCapacity(e.target.value)}
                         className="mt-1 w-full rounded-full px-4 py-2.5 text-sm border-[1.5px] border-dc-border bg-dc-field text-dc-ink outline-none focus:border-dc-blue transition"

@@ -13,7 +13,8 @@ const uploadFile = async (req, res) => {
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
         {
-          folder: 'daycare-chat'
+          folder: 'daycare-chat',
+          resource_type:'auto'
         },
         (error, result) => {
           if (error) {

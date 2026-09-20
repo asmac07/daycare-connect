@@ -457,6 +457,7 @@ const getMyEnrollments = async (req, res) => {
       parent: req.user.id
     })
       .populate('child')
+      .populate('assignedStaff', 'name email designation')
       .populate({
         path: 'daycare',
         select: 'name owner',
@@ -681,7 +682,7 @@ const renewEnrollment = async (req, res) => {
     if (end < start) {
       return res.status(400).json({
         success: false,
-        message: 'End date must be after start date'
+        message:  'End date cannot be before start date'
       })
     }
 

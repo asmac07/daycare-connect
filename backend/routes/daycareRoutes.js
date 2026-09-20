@@ -2,13 +2,15 @@
 
 const express = require('express')
 const router = express.Router()
-const { createDaycare, getMyDaycare, updateDaycare,searchNearbyDaycare, getApprovedDaycares } = require('../controllers/daycareController')
+const { createDaycare, getMyDaycare, updateDaycare,searchNearbyDaycare,
+    searchDaycare, getApprovedDaycares } = require('../controllers/daycareController')
 const { protect } = require('../middlewares/authMiddleware')
 const checkBlockedUser = require('../middlewares/checkBlockedUser')
 
 router.post('/create', protect,  createDaycare)
 router.get('/getMyDaycare', protect,  getMyDaycare)
 router.put('/update', protect,  updateDaycare )
+router.get('/search-daycare', protect, searchDaycare)
 router.get('/search', protect,  searchNearbyDaycare)
 router.get('/approved', protect, getApprovedDaycares)
 
