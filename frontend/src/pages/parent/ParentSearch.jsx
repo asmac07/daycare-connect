@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import axiosInstance from '../../api/axiosInstance'
 import { toast } from 'react-toastify'
@@ -13,6 +14,7 @@ const ParentSearch = () => {
   const [enrolling, setEnrolling] = useState(false)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+
   // Daycare states
   const [daycares, setDaycares] = useState([])
   const [loading, setLoading] = useState(false)
@@ -59,17 +61,26 @@ const ParentSearch = () => {
       setLoading(true)
 
       const response = await axiosInstance.get('/daycare/search', {
-        params: { lat: location.lat, lng: location.lng, page, limit }
+        params: {
+          lat: location.lat,
+          lng: location.lng,
+          page,
+          limit
+        }
       })
 
       const data = response.data
+
       setDaycares(data.data || [])
       setTotal(data.total || 0)
       setTotalPages(data.totalPages || 1)
-
     } catch (error) {
       console.error('Failed to fetch nearby daycares:', error)
-      toast.error(error.response?.data?.message || 'Failed to fetch nearby daycares')
+
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to fetch nearby daycares'
+      )
     } finally {
       setLoading(false)
     }
@@ -97,12 +108,12 @@ const ParentSearch = () => {
       setDaycares(data.data || [])
       setTotal(data.total || 0)
       setTotalPages(data.totalPages || 1)
-
     } catch (error) {
       console.error('Failed to search daycares:', error)
 
       toast.error(
-        error.response?.data?.message || 'Failed to search daycares'
+        error.response?.data?.message ||
+        'Failed to search daycares'
       )
     } finally {
       setLoading(false)
@@ -127,7 +138,11 @@ const ParentSearch = () => {
       setChildren(response.data.data || [])
     } catch (error) {
       console.error('Failed to fetch children:', error)
-      toast.error(error.response?.data?.message || 'Failed to fetch children')
+
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to fetch children'
+      )
     }
   }
 
@@ -146,7 +161,9 @@ const ParentSearch = () => {
 
   const getGoogleMapsLink = (daycare) => {
     if (!daycare.location?.coordinates) return '#'
+
     const [lng, lat] = daycare.location.coordinates
+
     return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
   }
 
@@ -174,6 +191,28 @@ const ParentSearch = () => {
     setAvailabilityError('')
   }
 
+  // Calculate end date based on selected package
+  const calculateEndDate = (start, selectedPackage) => {
+    if (!start || !selectedPackage) return ''
+
+    const date = new Date(`${start}T00:00:00`)
+
+    if (selectedPackage === 'daily') {
+      return start
+    }
+
+    if (selectedPackage === 'weekly') {
+      date.setDate(date.getDate() + 6)
+    }
+
+    if (selectedPackage === 'monthly') {
+      date.setMonth(date.getMonth() + 1)
+      date.setDate(date.getDate() - 1)
+    }
+
+    return date.toISOString().split('T')[0]
+  }
+
   const handleEnrollmentSubmit = async (e) => {
     e.preventDefault()
 
@@ -181,14 +220,17 @@ const ParentSearch = () => {
       toast.error('Please select a daycare')
       return
     }
+
     if (!selectedChild) {
       toast.warning('Please select a child')
       return
     }
+
     if (!ageGroup) {
       toast.warning('Please select age group')
       return
     }
+
     if (!packageType) {
       toast.warning('Please select a package')
       return
@@ -212,16 +254,22 @@ const ParentSearch = () => {
     try {
       setEnrolling(true)
 
-      const response = await axiosInstance.post('/enrollment/enrollmentRequest', {
-        child: selectedChild,
-        daycare: selectedDaycare._id,
-        ageGroup,
-        package: packageType,
-        startDate,
-        endDate
-      })
+      const response = await axiosInstance.post(
+        '/enrollment/enrollmentRequest',
+        {
+          child: selectedChild,
+          daycare: selectedDaycare._id,
+          ageGroup,
+          package: packageType,
+          startDate,
+          endDate
+        }
+      )
 
-      toast.success(response.data.message || 'Enrollment request submitted successfully')
+      toast.success(
+        response.data.message ||
+        'Enrollment request submitted successfully'
+      )
 
       setSelectedDaycare(null)
       setSelectedChild('')
@@ -229,9 +277,9 @@ const ParentSearch = () => {
       setPackageType('')
       setStartDate('')
       setEndDate('')
-
-    }
-    catch (error) {
+      setAvailability(null)
+      setAvailabilityError('')
+    } catch (error) {
       console.error('Enrollment request error:', error)
 
       const message =
@@ -241,9 +289,7 @@ const ParentSearch = () => {
       setAvailabilityError(message)
 
       toast.error(message)
-    }
-
-    finally {
+    } finally {
       setEnrolling(false)
     }
   }
@@ -275,7 +321,6 @@ const ParentSearch = () => {
       )
 
       setAvailability(response.data)
-
     } catch (error) {
       console.error('Availability check error:', error)
 
@@ -285,7 +330,6 @@ const ParentSearch = () => {
 
       setAvailability(null)
       setAvailabilityError(message)
-
     } finally {
       setCheckingAvailability(false)
     }
@@ -355,7 +399,11 @@ const ParentSearch = () => {
         {searchMode === 'nearby' && location && (
           <div className="bg-white/90 rounded-2xl p-4 mb-6 shadow-sm">
             <div className="flex items-center gap-1.5 text-sm text-dc-muted">
-              <MapPin size={14} strokeWidth={2.4} className="text-dc-blue flex-shrink-0" />
+              <MapPin
+                size={14}
+                strokeWidth={2.4}
+                className="text-dc-blue flex-shrink-0"
+              />
               Showing daycares near your location
             </div>
           </div>
@@ -364,7 +412,9 @@ const ParentSearch = () => {
         {/* LOADING */}
         {loading && (
           <div className="text-center py-10">
-            <p className="text-dc-muted">Finding nearby daycares...</p>
+            <p className="text-dc-muted">
+              Finding nearby daycares...
+            </p>
           </div>
         )}
 
@@ -383,50 +433,97 @@ const ParentSearch = () => {
         {!loading && daycares.length > 0 && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+
               {daycares.map((daycare) => (
                 <div
                   key={daycare._id}
                   className="bg-white rounded-[2rem] p-5 sm:p-6 shadow-[0_15px_40px_-15px_rgba(74,144,164,0.2)] border border-white"
                 >
                   <div className="mb-4">
-                    <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink break-words">{daycare.name}</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink break-words">
+                      {daycare.name}
+                    </h2>
+
                     <p className="text-sm text-dc-muted">
-                      {daycare.location?.address || daycare.location?.city || 'Location not available'}
+                      {daycare.location?.address ||
+                        daycare.location?.city ||
+                        'Location not available'}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2 mb-4">
-                    <Star size={16} strokeWidth={2.2} className="text-amber-400 fill-amber-400" />
+                    <Star
+                      size={16}
+                      strokeWidth={2.2}
+                      className="text-amber-400 fill-amber-400"
+                    />
+
                     <span className="font-semibold text-dc-ink">
-                      {daycare.averageRating ? Number(daycare.averageRating).toFixed(1) : 'No rating'}
+                      {daycare.averageRating
+                        ? Number(daycare.averageRating).toFixed(1)
+                        : 'No rating'}
                     </span>
+
                     {daycare.totalReviews !== undefined && (
-                      <span className="text-sm text-dc-muted">({daycare.totalReviews} reviews)</span>
+                      <span className="text-sm text-dc-muted">
+                        ({daycare.totalReviews} reviews)
+                      </span>
                     )}
                   </div>
 
                   <div className="space-y-2 text-sm text-dc-muted mb-5 break-words">
+
                     {daycare.description && (
-                      <p><strong className="text-dc-ink">About:</strong> {daycare.description}</p>
+                      <p>
+                        <strong className="text-dc-ink">
+                          About:
+                        </strong>{' '}
+                        {daycare.description}
+                      </p>
                     )}
+
                     {daycare.phone && (
-                      <p><strong className="text-dc-ink">Phone:</strong> {daycare.phone}</p>
+                      <p>
+                        <strong className="text-dc-ink">
+                          Phone:
+                        </strong>{' '}
+                        {daycare.phone}
+                      </p>
                     )}
+
                     {daycare.email && (
-                      <p><strong className="text-dc-ink">Email:</strong> {daycare.email}</p>
+                      <p>
+                        <strong className="text-dc-ink">
+                          Email:
+                        </strong>{' '}
+                        {daycare.email}
+                      </p>
                     )}
+
                     {daycare.capacity !== undefined && (
-                      <p><strong className="text-dc-ink">Capacity:</strong> {daycare.capacity}</p>
+                      <p>
+                        <strong className="text-dc-ink">
+                          Capacity:
+                        </strong>{' '}
+                        {daycare.capacity}
+                      </p>
                     )}
+
                     {daycare.availableSeats !== undefined && (
-                      <p><strong className="text-dc-ink">Available Seats:</strong> {daycare.availableSeats}</p>
+                      <p>
+                        <strong className="text-dc-ink">
+                          Available Seats:
+                        </strong>{' '}
+                        {daycare.availableSeats}
+                      </p>
                     )}
+
                   </div>
 
                   <div className="flex flex-wrap gap-3">
 
-                    
-                     <a href={getGoogleMapsLink(daycare)}
+                    <a
+                      href={getGoogleMapsLink(daycare)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-dc-hover text-dc-ink text-sm font-semibold hover:bg-dc-border/40 transition"
@@ -442,13 +539,16 @@ const ParentSearch = () => {
                     >
                       Enroll
                     </button>
+
                   </div>
                 </div>
               ))}
+
             </div>
 
             {/* PAGINATION */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mt-8 bg-white rounded-2xl p-4">
+
               <button
                 type="button"
                 onClick={() => setPage((prev) => prev - 1)}
@@ -459,8 +559,18 @@ const ParentSearch = () => {
               </button>
 
               <div className="text-sm text-dc-muted text-center whitespace-nowrap">
-                Page <strong className="text-dc-ink">{page}</strong> of <strong className="text-dc-ink">{totalPages}</strong>
-                <span className="ml-2">({total} daycares)</span>
+                Page{' '}
+                <strong className="text-dc-ink">
+                  {page}
+                </strong>{' '}
+                of{' '}
+                <strong className="text-dc-ink">
+                  {totalPages}
+                </strong>
+
+                <span className="ml-2">
+                  ({total} daycares)
+                </span>
               </div>
 
               <button
@@ -471,6 +581,7 @@ const ParentSearch = () => {
               >
                 Next →
               </button>
+
             </div>
           </>
         )}
@@ -479,12 +590,19 @@ const ParentSearch = () => {
       {/* ENROLLMENT MODAL */}
       {selectedDaycare && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-dc-ink/40 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+
           <div className="w-full max-w-lg bg-white rounded-[2rem] p-5 sm:p-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
 
             <div className="flex items-start justify-between mb-5 gap-3">
+
               <div className="min-w-0">
-                <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink">Enroll Your Child</h2>
-                <p className="text-sm text-dc-muted mt-1 truncate">{selectedDaycare.name}</p>
+                <h2 className="text-lg sm:text-xl font-semibold font-baloo text-dc-ink">
+                  Enroll Your Child
+                </h2>
+
+                <p className="text-sm text-dc-muted mt-1 truncate">
+                  {selectedDaycare.name}
+                </p>
               </div>
 
               <button
@@ -495,14 +613,28 @@ const ParentSearch = () => {
               >
                 <X size={16} strokeWidth={2.3} />
               </button>
+
             </div>
 
             <div className="bg-dc-field rounded-2xl p-4 mb-5 text-dc-ink">
-              <p className="text-sm"><strong>Daycare:</strong> {selectedDaycare.name}</p>
+
+              <p className="text-sm">
+                <strong>Daycare:</strong>{' '}
+                {selectedDaycare.name}
+              </p>
+
               <p className="text-sm mt-1 flex items-center gap-1">
                 <strong>Rating:</strong>
-                <Star size={13} strokeWidth={2.2} className="text-amber-400 fill-amber-400" />
-                {selectedDaycare.averageRating ? Number(selectedDaycare.averageRating).toFixed(1) : 'No rating'}
+
+                <Star
+                  size={13}
+                  strokeWidth={2.2}
+                  className="text-amber-400 fill-amber-400"
+                />
+
+                {selectedDaycare.averageRating
+                  ? Number(selectedDaycare.averageRating).toFixed(1)
+                  : 'No rating'}
               </p>
 
               <p className="text-sm mt-1">
@@ -525,19 +657,34 @@ const ParentSearch = () => {
 
             </div>
 
-            <form onSubmit={handleEnrollmentSubmit} className="space-y-4">
+            <form
+              onSubmit={handleEnrollmentSubmit}
+              className="space-y-4"
+            >
 
+              {/* CHILD */}
               <div>
-                <label className="block text-sm font-semibold text-dc-ink mb-2">Select Child</label>
+                <label className="block text-sm font-semibold text-dc-ink mb-2">
+                  Select Child
+                </label>
+
                 <select
                   value={selectedChild}
                   onChange={(e) => setSelectedChild(e.target.value)}
                   disabled={enrolling}
                   className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                 >
-                  <option value="">Select your child</option>
+                  <option value="">
+                    Select your child
+                  </option>
+
                   {children.map((child) => (
-                    <option key={child._id} value={child._id}>{child.name}</option>
+                    <option
+                      key={child._id}
+                      value={child._id}
+                    >
+                      {child.name}
+                    </option>
                   ))}
                 </select>
 
@@ -548,39 +695,90 @@ const ParentSearch = () => {
                 )}
               </div>
 
+              {/* AGE GROUP */}
               <div>
-                <label className="block text-sm font-semibold text-dc-ink mb-2">Age Group</label>
+                <label className="block text-sm font-semibold text-dc-ink mb-2">
+                  Age Group
+                </label>
+
                 <select
                   value={ageGroup}
                   onChange={(e) => setAgeGroup(e.target.value)}
                   disabled={enrolling}
                   className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                 >
-                  <option value="">Select age group</option>
-                  <option value="Infant">Infant</option>
-                  <option value="Toddler">Toddler</option>
-                  <option value="Preschool">Preschool</option>
+                  <option value="">
+                    Select age group
+                  </option>
+
+                  <option value="Infant">
+                    Infant
+                  </option>
+
+                  <option value="Toddler">
+                    Toddler
+                  </option>
+
+                  <option value="Preschool">
+                    Preschool
+                  </option>
                 </select>
               </div>
 
+              {/* PACKAGE */}
               <div>
-                <label className="block text-sm font-semibold text-dc-ink mb-2">Select Package</label>
+                <label className="block text-sm font-semibold text-dc-ink mb-2">
+                  Select Package
+                </label>
+
                 <select
                   value={packageType}
-                  onChange={(e) => setPackageType(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value
+
+                    setPackageType(value)
+                    setAvailabilityError('')
+
+                    if (startDate && value) {
+                      const calculatedEndDate =
+                        calculateEndDate(startDate, value)
+
+                      setEndDate(calculatedEndDate)
+
+                      checkAvailability(
+                        startDate,
+                        calculatedEndDate
+                      )
+                    } else {
+                      setEndDate('')
+                      setAvailability(null)
+                    }
+                  }}
                   disabled={enrolling}
                   className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                 >
-                  <option value="">Select package</option>
-                  <option value="daily">1 Day - ₹300</option>
-                  <option value="weekly">1 Week - ₹1000</option>
-                  <option value="monthly">1 Month - ₹5500</option>
+                  <option value="">
+                    Select package
+                  </option>
+
+                  <option value="daily">
+                    1 Day - ₹300
+                  </option>
+
+                  <option value="weekly">
+                    1 Week - ₹1000
+                  </option>
+
+                  <option value="monthly">
+                    1 Month - ₹5500
+                  </option>
                 </select>
               </div>
 
+              {/* DATES */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-                {/* Start Date */}
+                {/* START DATE */}
                 <div>
                   <label className="block text-sm font-semibold text-dc-ink mb-2">
                     Start Date
@@ -591,12 +789,25 @@ const ParentSearch = () => {
                     value={startDate}
                     onChange={(e) => {
                       const value = e.target.value
+
                       setStartDate(value)
                       setAvailabilityError('')
 
-                      if (endDate) {
-                        checkAvailability(value, endDate)
+                      if (packageType && value) {
+                        const calculatedEndDate =
+                          calculateEndDate(
+                            value,
+                            packageType
+                          )
+
+                        setEndDate(calculatedEndDate)
+
+                        checkAvailability(
+                          value,
+                          calculatedEndDate
+                        )
                       } else {
+                        setEndDate('')
                         setAvailability(null)
                       }
                     }}
@@ -606,7 +817,7 @@ const ParentSearch = () => {
                   />
                 </div>
 
-                {/* End Date */}
+                {/* END DATE */}
                 <div>
                   <label className="block text-sm font-semibold text-dc-ink mb-2">
                     End Date
@@ -615,31 +826,28 @@ const ParentSearch = () => {
                   <input
                     type="date"
                     value={endDate}
-                    onChange={(e) => {
-                      const value = e.target.value
-                      setEndDate(value)
-                      setAvailabilityError('')
-
-                      if (startDate) {
-                        checkAvailability(startDate, value)
-                      } else {
-                        setAvailability(null)
-                      }
-                    }}
-                    min={startDate || new Date().toISOString().split('T')[0]}
-                    disabled={enrolling}
-                    className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
+                    readOnly
+                    disabled={enrolling || !startDate || !packageType}
+                    className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-dc-hover text-sm text-dc-ink outline-none cursor-not-allowed transition"
                   />
                 </div>
 
               </div>
 
+              {/* AVAILABILITY ERROR */}
               {availabilityError && (
                 <div className="bg-dc-error-bg border border-dc-error-text/20 rounded-2xl p-4">
+
                   <div className="flex items-start gap-3">
-                    <AlertTriangle size={18} strokeWidth={2.2} className="text-dc-error-text flex-shrink-0 mt-0.5" />
+
+                    <AlertTriangle
+                      size={18}
+                      strokeWidth={2.2}
+                      className="text-dc-error-text flex-shrink-0 mt-0.5"
+                    />
 
                     <div className="min-w-0">
+
                       <p className="text-sm font-semibold text-dc-error-text">
                         Seats are not available for the selected dates
                       </p>
@@ -651,12 +859,17 @@ const ParentSearch = () => {
                       <p className="text-xs text-dc-muted mt-1">
                         Please choose a different date range.
                       </p>
+
                     </div>
+
                   </div>
+
                 </div>
               )}
 
+              {/* BUTTONS */}
               <div className="flex flex-col sm:flex-row justify-end gap-3 pt-3">
+
                 <button
                   type="button"
                   onClick={closeEnrollmentModal}
@@ -676,8 +889,11 @@ const ParentSearch = () => {
                   }
                   className="px-6 py-2 rounded-full bg-gradient-to-br from-dc-blue to-dc-green text-white text-sm font-semibold disabled:opacity-50 transition"
                 >
-                  {enrolling ? 'Submitting...' : 'Submit Enrollment'}
+                  {enrolling
+                    ? 'Submitting...'
+                    : 'Submit Enrollment'}
                 </button>
+
               </div>
 
             </form>

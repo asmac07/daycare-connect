@@ -686,7 +686,28 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
-    
+              // Validate package duration
+          const expectedEnd = new Date(start)
+
+          if (packageType === 'daily') {
+            // Same day
+          } else if (packageType === 'weekly') {
+            expectedEnd.setDate(expectedEnd.getDate() + 6)
+          } else if (packageType === 'monthly') {
+            expectedEnd.setMonth(expectedEnd.getMonth() + 1)
+            expectedEnd.setDate(expectedEnd.getDate() - 1)
+          }
+
+          expectedEnd.setHours(0, 0, 0, 0)
+          end.setHours(0, 0, 0, 0)
+
+          if (expectedEnd.getTime() !== end.getTime()) {
+            return res.status(400).json({
+              success: false,
+              message: 'End date does not match the selected package duration'
+            })
+          }
+
     const oldEnrollment = await Enrollment.findOne({
       _id: enrollmentId,
       parent: req.user.id

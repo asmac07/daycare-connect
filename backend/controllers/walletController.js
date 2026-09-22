@@ -149,8 +149,8 @@ const createRazorpayXPayout = async (amount) => {
       currency: 'INR',
       mode: 'UPI',
       purpose: 'payout',
-      queue_if_low_balance: true,
-      reference_id: `WITHDRAW_${Date.now()}`,
+      queue_if_low_balance: true, //insufficiant blnce
+      reference_id: `WITHDRAW_${Date.now()}`,  //to identify the withdrawl request
       narration: 'DayCare wallet withdrawal'
     },
     {
@@ -161,7 +161,7 @@ const createRazorpayXPayout = async (amount) => {
     }
   )
 
-  return response.data
+  return response.data  //inlude payout id and payout status
 }
 
   const razorpayXWebhook = async (req, res) => {
