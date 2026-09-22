@@ -44,6 +44,14 @@ const register = async (req, res) => {
       })
     }
 
+    if (!/\d/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must contain at least one number'
+      })
+    }
+
+
     if (![ ROLES.PARENT,
             ROLES.OWNER].includes(role)) {
             return res.status(400).json({
@@ -65,6 +73,13 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // const user = await User.create({
+    //   name,
+    //   email,
+    //   password: hashedPassword,
+    //   role,
+    //   status
+    // })
 
     const user = new User({
       name,
