@@ -189,6 +189,9 @@ const createRazorpayXPayout = async (amount) => {
 
     const payout = req.body.payload?.payout?.entity
 
+    console.log('PAYOUT OBJECT:', JSON.stringify(payout, null, 2))
+
+
     if (!payout) {
       console.log('PAYOUT DATA NOT FOUND')
 
@@ -203,6 +206,9 @@ const createRazorpayXPayout = async (amount) => {
     const transaction = await WalletTransaction.findOne({
       razorpayPayoutId: payout.id
     })
+
+    console.log('SEARCHING TRANSACTION FOR PAYOUT ID:', payout.id)
+console.log('TRANSACTION FOUND:', transaction)
 
     if (!transaction) {
       console.log('Wallet transaction not found')
