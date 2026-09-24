@@ -173,6 +173,8 @@ const createRazorpayXPayout = async (amount) => {
       .digest('hex')
 
     if (webhookSignature !== expectedSignature) {
+      console.log('INVALID WEBHOOK SIGNATURE')
+
       return res.status(400).json({
         success: false,
         message: 'Invalid webhook signature'
@@ -204,17 +206,25 @@ const createRazorpayXPayout = async (amount) => {
 
     if (!transaction) {
       console.log('Wallet transaction not found')
+      console.log('Searching payout ID:', payout.id)
 
       return res.status(200).json({
         success: true
       })
     }
 
+    console.log('TRANSACTION FOUND:', transaction._id)
+    console.log(
+      'TRANSACTION STATUS:',
+      transaction.payoutStatus
+    )
+
     // -----------------------------------
     // 1. PAYOUT PROCESSED
     // -----------------------------------
 
     if (event === 'payout.processed') {
+      console.log('PAYOUT PROCESSED EVENT RECEIVED')
 
       // Already processed
       if (transaction.payoutStatus === 'SUCCESS') {
@@ -237,6 +247,11 @@ const createRazorpayXPayout = async (amount) => {
           throw new Error('Wallet not found')
         }
 
+        console.log(
+          'WALLET BALANCE BEFORE DEDUCTION:',
+          wallet.balance
+        )
+
         // Deduct amount only after RazorpayX processed the payout
         wallet.balance -= transaction.amount
 
@@ -253,10 +268,12 @@ const createRazorpayXPayout = async (amount) => {
         console.log('Wallet transaction updated to SUCCESS')
 
       } catch (error) {
-
         await session.abortTransaction()
 
-        console.log('PROCESSED WEBHOOK TRANSACTION ERROR:', error)
+        console.log(
+          'PROCESSED WEBHOOK TRANSACTION ERROR:',
+          error
+        )
 
         throw error
 
@@ -266,11 +283,18 @@ const createRazorpayXPayout = async (amount) => {
     }
 
     // -----------------------------------
-    // 2. PAYOUT FAILED
+    // 2. PAYOUT REJECTED
     // -----------------------------------
 
     else if (event === 'payout.rejected') {
+      console.log('PAYOUT REJECTED EVENT RECEIVED')
 
+      console.log(
+        'TRANSACTION STATUS BEFORE REJECT:',
+        transaction.payoutStatus
+      )
+
+      // Already finalized
       if (
         transaction.payoutStatus === 'FAILED' ||
         transaction.payoutStatus === 'SUCCESS'
@@ -294,7 +318,24 @@ const createRazorpayXPayout = async (amount) => {
     // -----------------------------------
 
     else if (event === 'payout.reversed') {
+      console.log('PAYOUT REVERSED EVENT RECEIVED')
 
+      console.log(
+        'TRANSACTION STATUS BEFORE REVERSE:',
+        transaction.payoutStatus
+      )
+
+      console.log(
+        'TRANSACTION ID:',
+        transaction._id
+      )
+
+      console.log(
+        'PAYOUT ID:',
+        payout.id
+      )
+
+      // Already reversed
       if (transaction.payoutStatus === 'FAILED') {
         console.log('Payout already reversed/failed')
 
@@ -315,6 +356,11 @@ const createRazorpayXPayout = async (amount) => {
           throw new Error('Wallet not found')
         }
 
+        console.log(
+          'WALLET BALANCE BEFORE REVERSE:',
+          wallet.balance
+        )
+
         /*
           If the payout was already processed,
           the amount was deducted from wallet.
@@ -322,28 +368,54 @@ const createRazorpayXPayout = async (amount) => {
           Reversed means RazorpayX returned the
           payout amount, so add it back.
         */
+
         if (transaction.payoutStatus === 'SUCCESS') {
+          console.log(
+            'REVERSING SUCCESSFUL PAYOUT'
+          )
+
+          console.log(
+            'ADDING BACK AMOUNT:',
+            transaction.amount
+          )
+
           wallet.balance += transaction.amount
 
           await wallet.save({ session })
 
           transaction.balanceAfter = wallet.balance
+
+          console.log(
+            'WALLET BALANCE AFTER REVERSE:',
+            wallet.balance
+          )
         }
 
         transaction.payoutStatus = 'FAILED'
+
+        console.log(
+          'SETTING TRANSACTION STATUS TO FAILED'
+        )
 
         await transaction.save({ session })
 
         await session.commitTransaction()
 
-        console.log('Reversed payout amount returned to wallet')
-        console.log('Wallet transaction updated to FAILED')
+        console.log(
+          'Reversed payout amount returned to wallet'
+        )
+
+        console.log(
+          'Wallet transaction updated to FAILED'
+        )
 
       } catch (error) {
-
         await session.abortTransaction()
 
-        console.log('REVERSED WEBHOOK TRANSACTION ERROR:', error)
+        console.log(
+          'REVERSED WEBHOOK TRANSACTION ERROR:',
+          error
+        )
 
         throw error
 
@@ -357,8 +429,10 @@ const createRazorpayXPayout = async (amount) => {
     })
 
   } catch (error) {
-
-    console.log('WEBHOOK ERROR:', error.message)
+    console.log(
+      'WEBHOOK ERROR:',
+      error.message
+    )
 
     return res.status(500).json({
       success: false,
