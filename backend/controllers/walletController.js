@@ -45,14 +45,13 @@ const getOwnerWallet = async (req, res) => {
   }
 }
 
-
 const withdrawMoney = async (req, res) => {
   const session = await mongoose.startSession()
 
   try {
     const { amount } = req.body
 
-    //validate amount
+    // Validate amount
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -63,15 +62,13 @@ const withdrawMoney = async (req, res) => {
     // Start transaction
     session.startTransaction()
 
-    
     const wallet = await Wallet.findOne({
       owner: req.user.id
-    }).session(session) //this db oprtion is tha part of current trasacrion
+    }).session(session)
 
     if (!wallet) {
       throw new Error('Wallet not found')
     }
-
 
     if (amount > wallet.balance) {
       throw new Error('Insufficient wallet balance')
@@ -83,30 +80,24 @@ const withdrawMoney = async (req, res) => {
 
     console.log('RAZORPAYX PAYOUT:', payout)
 
-    
-    wallet.balance -= Number(amount)
-
-    // wallet updated is included this trasction
-    await wallet.save({ session })
-
-    
+    // Create withdrawal transaction with PROCESSING status
     await WalletTransaction.create(
-  [
-    {
-      owner: req.user.id,
-      wallet: wallet._id,
-      type: 'DEBIT',
-      amount: Number(amount),
-      reason: 'WITHDRAWAL',
-      balanceAfter: wallet.balance,
-      razorpayPayoutId: payout.id,
-      payoutStatus: payout.status.toUpperCase()
-    }
-  ],
-  { session }
-)
+      [
+        {
+          owner: req.user.id,
+          wallet: wallet._id,
+          type: 'DEBIT',
+          amount: Number(amount),
+          reason: 'WITHDRAWAL',
+          balanceAfter: wallet.balance,
+          razorpayPayoutId: payout.id,
+          payoutStatus: 'PROCESSING'
+        }
+      ],
+      { session }
+    )
 
-    //confrmation(trasnsaction succed)
+    // Confirm database transaction
     await session.commitTransaction()
 
     res.status(200).json({
@@ -121,7 +112,7 @@ const withdrawMoney = async (req, res) => {
   } catch (error) {
 
     console.log('RAZORPAY ERROR DATA:', error.response?.data)
-  console.log('WITHDRAW MONEY ERROR:', error.message)
+    console.log('WITHDRAW MONEY ERROR:', error.message)
 
     await session.abortTransaction()
 
@@ -129,7 +120,8 @@ const withdrawMoney = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: error.response?.data?.error?.description || error.message
+      message:
+        error.response?.data?.error?.description || error.message
     })
 
   } finally {
@@ -164,22 +156,19 @@ const createRazorpayXPayout = async (amount) => {
   return response.data  //inlude payout id and payout status
 }
 
-  const razorpayXWebhook = async (req, res) => {
+ const razorpayXWebhook = async (req, res) => {
   try {
     console.log('RAZORPAYX WEBHOOK RECEIVED')
+
     const webhookSignature = req.headers['x-razorpay-signature']
 
     console.log('WEBHOOK SIGNATURE:', webhookSignature)
-  console.log('RAW BODY EXISTS:', !!req.rawBody)
-console.log('WEBHOOK BODY:', req.body)
+    console.log('RAW BODY EXISTS:', !!req.rawBody)
+    console.log('WEBHOOK BODY:', req.body)
 
-
-    
+    // Verify webhook signature
     const expectedSignature = crypto
-      .createHmac(
-        'sha256',
-        process.env.RAZORPAYX_WEBHOOK_SECRET
-      )
+      .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
       .update(req.rawBody)
       .digest('hex')
 
@@ -196,40 +185,182 @@ console.log('WEBHOOK BODY:', req.body)
 
     console.log('WEBHOOK EVENT:', event)
 
+    const payout = req.body.payload?.payout?.entity
+
+    if (!payout) {
+      console.log('PAYOUT DATA NOT FOUND')
+
+      return res.status(200).json({
+        success: true
+      })
+    }
+
+    console.log('PAYOUT ID:', payout.id)
+    console.log('PAYOUT STATUS:', payout.status)
+
+    const transaction = await WalletTransaction.findOne({
+      razorpayPayoutId: payout.id
+    })
+
+    if (!transaction) {
+      console.log('Wallet transaction not found')
+
+      return res.status(200).json({
+        success: true
+      })
+    }
+
+    // -----------------------------------
+    // 1. PAYOUT PROCESSED
+    // -----------------------------------
+
     if (event === 'payout.processed') {
 
-      const payout = req.body.payload.payout.entity
+      // Already processed
+      if (transaction.payoutStatus === 'SUCCESS') {
+        console.log('Payout already processed')
 
-      console.log('PROCESSED PAYOUT:', payout)
-
-      const transaction = await WalletTransaction.findOne({
-        razorpayPayoutId: payout.id
-      })
-
-      if (!transaction) {
-        console.log('Wallet transaction not found')
         return res.status(200).json({
           success: true
         })
       }
 
-      transaction.payoutStatus = 'SUCCESS'
+      const session = await mongoose.startSession()
+
+      try {
+        session.startTransaction()
+
+        const wallet = await Wallet.findById(transaction.wallet)
+          .session(session)
+
+        if (!wallet) {
+          throw new Error('Wallet not found')
+        }
+
+        // Deduct amount only after RazorpayX processed the payout
+        wallet.balance -= transaction.amount
+
+        await wallet.save({ session })
+
+        transaction.payoutStatus = 'SUCCESS'
+        transaction.balanceAfter = wallet.balance
+
+        await transaction.save({ session })
+
+        await session.commitTransaction()
+
+        console.log('Wallet balance deducted successfully')
+        console.log('Wallet transaction updated to SUCCESS')
+
+      } catch (error) {
+
+        await session.abortTransaction()
+
+        console.log('PROCESSED WEBHOOK TRANSACTION ERROR:', error)
+
+        throw error
+
+      } finally {
+        session.endSession()
+      }
+    }
+
+    // -----------------------------------
+    // 2. PAYOUT FAILED
+    // -----------------------------------
+
+    else if (event === 'payout.failed') {
+
+      if (
+        transaction.payoutStatus === 'FAILED' ||
+        transaction.payoutStatus === 'SUCCESS'
+      ) {
+        console.log('Payout already finalized')
+
+        return res.status(200).json({
+          success: true
+        })
+      }
+
+      transaction.payoutStatus = 'FAILED'
 
       await transaction.save()
 
-      console.log(
-        'Wallet transaction updated to SUCCESS'
-      )
+      console.log('Wallet transaction updated to FAILED')
     }
 
-    res.status(200).json({
+    // -----------------------------------
+    // 3. PAYOUT REVERSED
+    // -----------------------------------
+
+    else if (event === 'payout.reversed') {
+
+      if (transaction.payoutStatus === 'FAILED') {
+        console.log('Payout already reversed/failed')
+
+        return res.status(200).json({
+          success: true
+        })
+      }
+
+      const session = await mongoose.startSession()
+
+      try {
+        session.startTransaction()
+
+        const wallet = await Wallet.findById(transaction.wallet)
+          .session(session)
+
+        if (!wallet) {
+          throw new Error('Wallet not found')
+        }
+
+        /*
+          If the payout was already processed,
+          the amount was deducted from wallet.
+
+          Reversed means RazorpayX returned the
+          payout amount, so add it back.
+        */
+        if (transaction.payoutStatus === 'SUCCESS') {
+          wallet.balance += transaction.amount
+
+          await wallet.save({ session })
+
+          transaction.balanceAfter = wallet.balance
+        }
+
+        transaction.payoutStatus = 'FAILED'
+
+        await transaction.save({ session })
+
+        await session.commitTransaction()
+
+        console.log('Reversed payout amount returned to wallet')
+        console.log('Wallet transaction updated to FAILED')
+
+      } catch (error) {
+
+        await session.abortTransaction()
+
+        console.log('REVERSED WEBHOOK TRANSACTION ERROR:', error)
+
+        throw error
+
+      } finally {
+        session.endSession()
+      }
+    }
+
+    return res.status(200).json({
       success: true
     })
 
   } catch (error) {
+
     console.log('WEBHOOK ERROR:', error.message)
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message
     })
