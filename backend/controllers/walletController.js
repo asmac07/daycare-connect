@@ -269,7 +269,7 @@ const createRazorpayXPayout = async (amount) => {
     // 2. PAYOUT FAILED
     // -----------------------------------
 
-    else if (event === 'payout.failed') {
+    else if (event === 'payout.rejected') {
 
       if (
         transaction.payoutStatus === 'FAILED' ||
