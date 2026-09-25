@@ -198,7 +198,7 @@ const Login = () => {
                     token: response.data.accessToken,
                   }))
 
-                  navigate(getDashboardRoute(response.data.data.role))
+                  navigate(getDashboardRoute(response.data.data.role), { replace: true })
 
                 }
                 catch (error) {

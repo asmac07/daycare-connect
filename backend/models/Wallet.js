@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose')
 
 const walletSchema = new mongoose.Schema(
@@ -14,6 +13,33 @@ const walletSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       min: 0
+    },
+
+    bankAccount: {
+      accountHolderName: {
+        type: String,
+        trim: true
+      },
+
+      accountNumber: {
+        type: String,
+        trim: true
+      },
+
+      ifsc: {
+        type: String,
+        trim: true,
+        uppercase: true
+      },
+
+      bankName: {
+        type: String,
+        trim: true
+      },
+
+      fundAccountId: {
+        type: String
+      }
     }
   },
   {

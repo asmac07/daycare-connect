@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose')
 const Wallet = require('../models/Wallet')
 const WalletTransaction = require('../models/WalletTransaction')
@@ -30,7 +29,8 @@ const getOwnerWallet = async (req, res) => {
       success: true,
       data: {
         balance: wallet.balance,
-        transactions: transactions
+        transactions: transactions,
+        bankAccount: wallet.bankAccount
       }
     })
 
@@ -44,6 +44,7 @@ const getOwnerWallet = async (req, res) => {
     })
   }
 }
+
 
 const withdrawMoney = async (req, res) => {
   const session = await mongoose.startSession()
@@ -74,9 +75,20 @@ const withdrawMoney = async (req, res) => {
       throw new Error('Insufficient wallet balance')
     }
 
+    // Check whether owner has a bank account
+    if (!wallet.bankAccount?.fundAccountId) {
+      throw new Error(
+        'Please add a bank account before withdrawal'
+      )
+    }
+
     console.log('STEP 1: Calling RazorpayX payout')
 
-    const payout = await createRazorpayXPayout(Number(amount))
+    // Create payout using owner's fund account
+    const payout = await createRazorpayXPayout(
+      Number(amount),
+      wallet.bankAccount.fundAccountId
+    )
 
     console.log('RAZORPAYX PAYOUT:', payout)
 
@@ -111,17 +123,28 @@ const withdrawMoney = async (req, res) => {
 
   } catch (error) {
 
-    console.log('RAZORPAY ERROR DATA:', error.response?.data)
-    console.log('WITHDRAW MONEY ERROR:', error.message)
+    console.log(
+      'RAZORPAY ERROR DATA:',
+      error.response?.data
+    )
+
+    console.log(
+      'WITHDRAW MONEY ERROR:',
+      error.message
+    )
 
     await session.abortTransaction()
 
-    console.log('WITHDRAW MONEY ERROR:', error)
+    console.log(
+      'WITHDRAW MONEY ERROR:',
+      error
+    )
 
     res.status(500).json({
       success: false,
       message:
-        error.response?.data?.error?.description || error.message
+        error.response?.data?.error?.description ||
+        error.message
     })
 
   } finally {
@@ -129,20 +152,26 @@ const withdrawMoney = async (req, res) => {
   }
 }
 
-const createRazorpayXPayout = async (amount) => {
+
+const createRazorpayXPayout = async (
+  amount,
+  fundAccountId
+) => {
 
   const response = await axios.post(
     'https://api.razorpay.com/v1/payouts',
     {
       account_number: process.env.RAZORPAYX_ACCOUNT_NUMBER,
-      // fund_account_id: fundAccountId,
-      fund_account_id: process.env.RAZORPAYX_FUND_ACCOUNT_ID,
+
+      // Owner-specific RazorpayX fund account
+      fund_account_id: fundAccountId,
+
       amount: Number(amount) * 100,
       currency: 'INR',
       mode: 'UPI',
       purpose: 'payout',
-      queue_if_low_balance: true, //insufficiant blnce
-      reference_id: `WITHDRAW_${Date.now()}`,  //to identify the withdrawl request
+      queue_if_low_balance: true,
+      reference_id: `WITHDRAW_${Date.now()}`,
       narration: 'DayCare wallet withdrawal'
     },
     {
@@ -153,26 +182,44 @@ const createRazorpayXPayout = async (amount) => {
     }
   )
 
-  return response.data  //inlude payout id and payout status
+  return response.data
 }
 
- const razorpayXWebhook = async (req, res) => {
+
+const razorpayXWebhook = async (req, res) => {
   try {
+
     console.log('RAZORPAYX WEBHOOK RECEIVED')
 
-    const webhookSignature = req.headers['x-razorpay-signature']
+    const webhookSignature =
+      req.headers['x-razorpay-signature']
 
-    console.log('WEBHOOK SIGNATURE:', webhookSignature)
-    console.log('RAW BODY EXISTS:', !!req.rawBody)
-    console.log('WEBHOOK BODY:', req.body)
+    console.log(
+      'WEBHOOK SIGNATURE:',
+      webhookSignature
+    )
+
+    console.log(
+      'RAW BODY EXISTS:',
+      !!req.rawBody
+    )
+
+    console.log(
+      'WEBHOOK BODY:',
+      req.body
+    )
 
     // Verify webhook signature
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
+      .createHmac(
+        'sha256',
+        process.env.RAZORPAYX_WEBHOOK_SECRET
+      )
       .update(req.rawBody)
       .digest('hex')
 
     if (webhookSignature !== expectedSignature) {
+
       console.log('INVALID WEBHOOK SIGNATURE')
 
       return res.status(400).json({
@@ -185,72 +232,122 @@ const createRazorpayXPayout = async (amount) => {
 
     const event = req.body.event
 
-    console.log('WEBHOOK EVENT:', event)
+    console.log(
+      'WEBHOOK EVENT:',
+      event
+    )
 
-    const payout = req.body.payload?.payout?.entity
+    const payout =
+      req.body.payload?.payout?.entity
 
-    console.log('PAYOUT OBJECT:', JSON.stringify(payout, null, 2))
-
+    console.log(
+      'PAYOUT OBJECT:',
+      JSON.stringify(payout, null, 2)
+    )
 
     if (!payout) {
-      console.log('PAYOUT DATA NOT FOUND')
+
+      console.log(
+        'PAYOUT DATA NOT FOUND'
+      )
 
       return res.status(200).json({
         success: true
       })
     }
 
-    console.log('PAYOUT ID:', payout.id)
-    console.log('PAYOUT STATUS:', payout.status)
+    console.log(
+      'PAYOUT ID:',
+      payout.id
+    )
 
-    const transaction = await WalletTransaction.findOne({
-      razorpayPayoutId: payout.id
-    })
+    console.log(
+      'PAYOUT STATUS:',
+      payout.status
+    )
 
-    console.log('SEARCHING TRANSACTION FOR PAYOUT ID:', payout.id)
-console.log('TRANSACTION FOUND:', transaction)
+    const transaction =
+      await WalletTransaction.findOne({
+        razorpayPayoutId: payout.id
+      })
+
+    console.log(
+      'SEARCHING TRANSACTION FOR PAYOUT ID:',
+      payout.id
+    )
+
+    console.log(
+      'TRANSACTION FOUND:',
+      transaction
+    )
 
     if (!transaction) {
-      console.log('Wallet transaction not found')
-      console.log('Searching payout ID:', payout.id)
+
+      console.log(
+        'Wallet transaction not found'
+      )
+
+      console.log(
+        'Searching payout ID:',
+        payout.id
+      )
 
       return res.status(200).json({
         success: true
       })
     }
 
-    console.log('TRANSACTION FOUND:', transaction._id)
+    console.log(
+      'TRANSACTION FOUND:',
+      transaction._id
+    )
+
     console.log(
       'TRANSACTION STATUS:',
       transaction.payoutStatus
     )
+
 
     // -----------------------------------
     // 1. PAYOUT PROCESSED
     // -----------------------------------
 
     if (event === 'payout.processed') {
-      console.log('PAYOUT PROCESSED EVENT RECEIVED')
+
+      console.log(
+        'PAYOUT PROCESSED EVENT RECEIVED'
+      )
 
       // Already processed
-      if (transaction.payoutStatus === 'SUCCESS') {
-        console.log('Payout already processed')
+      if (
+        transaction.payoutStatus === 'SUCCESS'
+      ) {
+
+        console.log(
+          'Payout already processed'
+        )
 
         return res.status(200).json({
           success: true
         })
       }
 
-      const session = await mongoose.startSession()
+      const session =
+        await mongoose.startSession()
 
       try {
+
         session.startTransaction()
 
-        const wallet = await Wallet.findById(transaction.wallet)
-          .session(session)
+        const wallet =
+          await Wallet.findById(
+            transaction.wallet
+          ).session(session)
 
         if (!wallet) {
-          throw new Error('Wallet not found')
+          throw new Error(
+            'Wallet not found'
+          )
         }
 
         console.log(
@@ -258,22 +355,36 @@ console.log('TRANSACTION FOUND:', transaction)
           wallet.balance
         )
 
-        // Deduct amount only after RazorpayX processed the payout
+        // Deduct amount only after
+        // RazorpayX processed the payout
         wallet.balance -= transaction.amount
 
-        await wallet.save({ session })
+        await wallet.save({
+          session
+        })
 
-        transaction.payoutStatus = 'SUCCESS'
-        transaction.balanceAfter = wallet.balance
+        transaction.payoutStatus =
+          'SUCCESS'
 
-        await transaction.save({ session })
+        transaction.balanceAfter =
+          wallet.balance
+
+        await transaction.save({
+          session
+        })
 
         await session.commitTransaction()
 
-        console.log('Wallet balance deducted successfully')
-        console.log('Wallet transaction updated to SUCCESS')
+        console.log(
+          'Wallet balance deducted successfully'
+        )
+
+        console.log(
+          'Wallet transaction updated to SUCCESS'
+        )
 
       } catch (error) {
+
         await session.abortTransaction()
 
         console.log(
@@ -284,16 +395,23 @@ console.log('TRANSACTION FOUND:', transaction)
         throw error
 
       } finally {
+
         session.endSession()
       }
     }
+
 
     // -----------------------------------
     // 2. PAYOUT REJECTED
     // -----------------------------------
 
-    else if (event === 'payout.rejected') {
-      console.log('PAYOUT REJECTED EVENT RECEIVED')
+    else if (
+      event === 'payout.rejected'
+    ) {
+
+      console.log(
+        'PAYOUT REJECTED EVENT RECEIVED'
+      )
 
       console.log(
         'TRANSACTION STATUS BEFORE REJECT:',
@@ -305,26 +423,38 @@ console.log('TRANSACTION FOUND:', transaction)
         transaction.payoutStatus === 'FAILED' ||
         transaction.payoutStatus === 'SUCCESS'
       ) {
-        console.log('Payout already finalized')
+
+        console.log(
+          'Payout already finalized'
+        )
 
         return res.status(200).json({
           success: true
         })
       }
 
-      transaction.payoutStatus = 'FAILED'
+      transaction.payoutStatus =
+        'FAILED'
 
       await transaction.save()
 
-      console.log('Wallet transaction updated to FAILED')
+      console.log(
+        'Wallet transaction updated to FAILED'
+      )
     }
+
 
     // -----------------------------------
     // 3. PAYOUT REVERSED
     // -----------------------------------
 
-    else if (event === 'payout.reversed') {
-      console.log('PAYOUT REVERSED EVENT RECEIVED')
+    else if (
+      event === 'payout.reversed'
+    ) {
+
+      console.log(
+        'PAYOUT REVERSED EVENT RECEIVED'
+      )
 
       console.log(
         'TRANSACTION STATUS BEFORE REVERSE:',
@@ -342,24 +472,35 @@ console.log('TRANSACTION FOUND:', transaction)
       )
 
       // Already reversed
-      if (transaction.payoutStatus === 'FAILED') {
-        console.log('Payout already reversed/failed')
+      if (
+        transaction.payoutStatus === 'FAILED'
+      ) {
+
+        console.log(
+          'Payout already reversed/failed'
+        )
 
         return res.status(200).json({
           success: true
         })
       }
 
-      const session = await mongoose.startSession()
+      const session =
+        await mongoose.startSession()
 
       try {
+
         session.startTransaction()
 
-        const wallet = await Wallet.findById(transaction.wallet)
-          .session(session)
+        const wallet =
+          await Wallet.findById(
+            transaction.wallet
+          ).session(session)
 
         if (!wallet) {
-          throw new Error('Wallet not found')
+          throw new Error(
+            'Wallet not found'
+          )
         }
 
         console.log(
@@ -375,7 +516,10 @@ console.log('TRANSACTION FOUND:', transaction)
           payout amount, so add it back.
         */
 
-        if (transaction.payoutStatus === 'SUCCESS') {
+        if (
+          transaction.payoutStatus === 'SUCCESS'
+        ) {
+
           console.log(
             'REVERSING SUCCESSFUL PAYOUT'
           )
@@ -385,11 +529,15 @@ console.log('TRANSACTION FOUND:', transaction)
             transaction.amount
           )
 
-          wallet.balance += transaction.amount
+          wallet.balance +=
+            transaction.amount
 
-          await wallet.save({ session })
+          await wallet.save({
+            session
+          })
 
-          transaction.balanceAfter = wallet.balance
+          transaction.balanceAfter =
+            wallet.balance
 
           console.log(
             'WALLET BALANCE AFTER REVERSE:',
@@ -397,13 +545,16 @@ console.log('TRANSACTION FOUND:', transaction)
           )
         }
 
-        transaction.payoutStatus = 'FAILED'
+        transaction.payoutStatus =
+          'FAILED'
 
         console.log(
           'SETTING TRANSACTION STATUS TO FAILED'
         )
 
-        await transaction.save({ session })
+        await transaction.save({
+          session
+        })
 
         await session.commitTransaction()
 
@@ -416,6 +567,7 @@ console.log('TRANSACTION FOUND:', transaction)
         )
 
       } catch (error) {
+
         await session.abortTransaction()
 
         console.log(
@@ -426,15 +578,18 @@ console.log('TRANSACTION FOUND:', transaction)
         throw error
 
       } finally {
+
         session.endSession()
       }
     }
+
 
     return res.status(200).json({
       success: true
     })
 
   } catch (error) {
+
     console.log(
       'WEBHOOK ERROR:',
       error.message
@@ -447,9 +602,170 @@ console.log('TRANSACTION FOUND:', transaction)
   }
 }
 
+
+const addBankAccount = async (req, res) => {
+  try {
+
+    const {
+      accountHolderName,
+      accountNumber,
+      ifsc,
+      bankName
+    } = req.body
+
+    // Validate required fields
+    if (
+      !accountHolderName ||
+      !accountNumber ||
+      !ifsc ||
+      !bankName
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message: 'All bank details are required'
+      })
+    }
+
+    // Find owner's wallet
+    const wallet =
+      await Wallet.findOne({
+        owner: req.user.id
+      })
+
+    if (!wallet) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Wallet not found'
+      })
+    }
+
+    // Find owner details
+    const owner =
+      await mongoose
+        .model('User')
+        .findById(req.user.id)
+
+    if (!owner) {
+
+      return res.status(404).json({
+        success: false,
+        message: 'Owner not found'
+      })
+    }
+
+    if (!owner.phone) {
+
+      return res.status(400).json({
+        success: false,
+        message:
+          'Phone number is required to add bank account'
+      })
+    }
+
+
+    // Create RazorpayX Contact
+    const contactResponse =
+      await axios.post(
+        'https://api.razorpay.com/v1/contacts',
+        {
+          name: accountHolderName,
+          email: owner.email,
+          contact: owner.phone,
+          type: 'vendor',
+          reference_id:
+            `OWNER_${owner._id}`
+        },
+        {
+          auth: {
+            username:
+              process.env.RAZORPAYX_KEY_ID,
+            password:
+              process.env.RAZORPAYX_KEY_SECRET
+          }
+        }
+      )
+
+    const contactId =
+      contactResponse.data.id
+
+
+    // Create RazorpayX Fund Account
+    const fundAccountResponse =
+      await axios.post(
+        'https://api.razorpay.com/v1/fund_accounts',
+        {
+          contact_id: contactId,
+          account_type: 'bank_account',
+          bank_account: {
+            name: accountHolderName,
+            ifsc: ifsc,
+            account_number: accountNumber
+          }
+        },
+        {
+          auth: {
+            username:
+              process.env.RAZORPAYX_KEY_ID,
+            password:
+              process.env.RAZORPAYX_KEY_SECRET
+          }
+        }
+      )
+
+    const fundAccountId =
+      fundAccountResponse.data.id
+
+
+    // Save bank details in wallet
+    wallet.bankAccount = {
+      accountHolderName,
+      accountNumber,
+      ifsc,
+      bankName,
+      fundAccountId
+    }
+
+    await wallet.save()
+
+
+    res.status(200).json({
+      success: true,
+      message:
+        'Bank account added successfully',
+      data: {
+        accountHolderName,
+        accountNumber:
+          `XXXXXX${accountNumber.slice(-4)}`,
+        ifsc,
+        bankName,
+        fundAccountId
+      }
+    })
+
+  } catch (error) {
+
+    console.log(
+      'ADD BANK ACCOUNT ERROR:',
+      error.response?.data ||
+      error.message
+    )
+
+    res.status(500).json({
+      success: false,
+      message:
+        error.response?.data?.error?.description ||
+        error.message
+    })
+  }
+}
+
+
 module.exports = {
   getOwnerWallet,
   withdrawMoney,
   razorpayXWebhook,
-  createRazorpayXPayout
+  createRazorpayXPayout,
+  addBankAccount
 }

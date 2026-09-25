@@ -39,7 +39,7 @@ const SelectRole = () => {
       }))
 
       toast.success('Account created successfully!')
-      navigate(getDashboardRoute(response.data.data.role))
+      navigate(getDashboardRoute(response.data.data.role), { replace : true})
 
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to complete signup')
