@@ -1029,19 +1029,20 @@ const OwnerWallet = () => {
                 </label>
 
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  value={bankForm.accountNumber}
-                  onChange={(e) =>
-                    setBankForm({
-                      ...bankForm,
-                      accountNumber: e.target.value.replace(/\D/g, ''),
-                    })
-                  }
-                  placeholder="Enter account number"
-                  className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
-                  required
-                />
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={18}
+                    value={bankForm.accountNumber}
+                    onChange={(e) =>
+                      setBankForm({
+                        ...bankForm,
+                        accountNumber: e.target.value.replace(/\D/g, ''),
+                      })
+                    }
+                    placeholder="Enter account number"
+                    className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
+                    required
+                  />
 
               </div>
 

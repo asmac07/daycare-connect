@@ -627,6 +627,13 @@ const addBankAccount = async (req, res) => {
       })
     }
 
+    if (!/^\d{9,18}$/.test(accountNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Account number must be between 9 and 18 digits'
+      })
+    }
+
     // Find owner's wallet
     const wallet =
       await Wallet.findOne({
