@@ -602,7 +602,6 @@ const razorpayXWebhook = async (req, res) => {
   }
 }
 
-
 const addBankAccount = async (req, res) => {
   try {
 
@@ -610,7 +609,8 @@ const addBankAccount = async (req, res) => {
       accountHolderName,
       accountNumber,
       ifsc,
-      bankName
+      bankName,
+      phone
     } = req.body
 
     // Validate required fields
@@ -618,15 +618,16 @@ const addBankAccount = async (req, res) => {
       !accountHolderName ||
       !accountNumber ||
       !ifsc ||
-      !bankName
+      !bankName ||
+      !phone
     ) {
-
       return res.status(400).json({
         success: false,
-        message: 'All bank details are required'
+        message: 'All bank details and mobile number are required'
       })
     }
 
+    // Validate account number
     if (!/^\d{9,18}$/.test(accountNumber)) {
       return res.status(400).json({
         success: false,
@@ -634,14 +635,20 @@ const addBankAccount = async (req, res) => {
       })
     }
 
-    // Find owner's wallet
-    const wallet =
-      await Wallet.findOne({
-        owner: req.user.id
+    // Validate mobile number
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please enter a valid 10-digit mobile number'
       })
+    }
+
+    // Find owner's wallet
+    const wallet = await Wallet.findOne({
+      owner: req.user.id
+    })
 
     if (!wallet) {
-
       return res.status(404).json({
         success: false,
         message: 'Wallet not found'
@@ -649,81 +656,58 @@ const addBankAccount = async (req, res) => {
     }
 
     // Find owner details
-    const owner =
-      await mongoose
-        .model('User')
-        .findById(req.user.id)
+    const owner = await mongoose
+      .model('User')
+      .findById(req.user.id)
 
     if (!owner) {
-
       return res.status(404).json({
         success: false,
         message: 'Owner not found'
       })
     }
 
-    if (!owner.phone) {
-
-      return res.status(400).json({
-        success: false,
-        message:
-          'Phone number is required to add bank account'
-      })
-    }
-
-
     // Create RazorpayX Contact
-    const contactResponse =
-      await axios.post(
-        'https://api.razorpay.com/v1/contacts',
-        {
-          name: accountHolderName,
-          email: owner.email,
-          contact: owner.phone,
-          type: 'vendor',
-          reference_id:
-            `OWNER_${owner._id}`
-        },
-        {
-          auth: {
-            username:
-              process.env.RAZORPAYX_KEY_ID,
-            password:
-              process.env.RAZORPAYX_KEY_SECRET
-          }
+    const contactResponse = await axios.post(
+      'https://api.razorpay.com/v1/contacts',
+      {
+        name: accountHolderName,
+        email: owner.email,
+        contact: phone,
+        type: 'vendor',
+        reference_id: `OWNER_${owner._id}`
+      },
+      {
+        auth: {
+          username: process.env.RAZORPAYX_KEY_ID,
+          password: process.env.RAZORPAYX_KEY_SECRET
         }
-      )
+      }
+    )
 
-    const contactId =
-      contactResponse.data.id
-
+    const contactId = contactResponse.data.id
 
     // Create RazorpayX Fund Account
-    const fundAccountResponse =
-      await axios.post(
-        'https://api.razorpay.com/v1/fund_accounts',
-        {
-          contact_id: contactId,
-          account_type: 'bank_account',
-          bank_account: {
-            name: accountHolderName,
-            ifsc: ifsc,
-            account_number: accountNumber
-          }
-        },
-        {
-          auth: {
-            username:
-              process.env.RAZORPAYX_KEY_ID,
-            password:
-              process.env.RAZORPAYX_KEY_SECRET
-          }
+    const fundAccountResponse = await axios.post(
+      'https://api.razorpay.com/v1/fund_accounts',
+      {
+        contact_id: contactId,
+        account_type: 'bank_account',
+        bank_account: {
+          name: accountHolderName,
+          ifsc: ifsc,
+          account_number: accountNumber
         }
-      )
+      },
+      {
+        auth: {
+          username: process.env.RAZORPAYX_KEY_ID,
+          password: process.env.RAZORPAYX_KEY_SECRET
+        }
+      }
+    )
 
-    const fundAccountId =
-      fundAccountResponse.data.id
-
+    const fundAccountId = fundAccountResponse.data.id
 
     // Save bank details in wallet
     wallet.bankAccount = {
@@ -736,15 +720,12 @@ const addBankAccount = async (req, res) => {
 
     await wallet.save()
 
-
     res.status(200).json({
       success: true,
-      message:
-        'Bank account added successfully',
+      message: 'Bank account added successfully',
       data: {
         accountHolderName,
-        accountNumber:
-          `XXXXXX${accountNumber.slice(-4)}`,
+        accountNumber: `XXXXXX${accountNumber.slice(-4)}`,
         ifsc,
         bankName,
         fundAccountId
@@ -755,8 +736,7 @@ const addBankAccount = async (req, res) => {
 
     console.log(
       'ADD BANK ACCOUNT ERROR:',
-      error.response?.data ||
-      error.message
+      error.response?.data || error.message
     )
 
     res.status(500).json({
@@ -767,7 +747,6 @@ const addBankAccount = async (req, res) => {
     })
   }
 }
-
 
 module.exports = {
   getOwnerWallet,

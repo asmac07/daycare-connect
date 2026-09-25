@@ -1,4 +1,5 @@
 
+
 import { useEffect, useState } from 'react'
 import {
   Wallet,
@@ -34,6 +35,7 @@ const OwnerWallet = () => {
     accountNumber: '',
     ifsc: '',
     bankName: '',
+    phone: '',
   })
 
   // Fetch wallet data
@@ -49,7 +51,6 @@ const OwnerWallet = () => {
       setBalance(walletData.balance || 0)
       setTransactions(walletData.transactions || [])
       setBankAccount(walletData.bankAccount || null)
-
     } catch (error) {
       console.log('GET WALLET ERROR:', error)
 
@@ -109,7 +110,6 @@ const OwnerWallet = () => {
       setShowWithdrawModal(false)
 
       await fetchWallet()
-
     } catch (error) {
       console.error('Withdrawal failed:', error)
 
@@ -125,6 +125,12 @@ const OwnerWallet = () => {
   // Bank account submit
   const handleBankSubmit = async (e) => {
     e.preventDefault()
+
+    // Validate mobile number
+    if (!/^[6-9]\d{9}$/.test(bankForm.phone)) {
+      setError('Please enter a valid 10-digit mobile number')
+      return
+    }
 
     try {
       setBankLoading(true)
@@ -144,8 +150,8 @@ const OwnerWallet = () => {
         accountNumber: '',
         ifsc: '',
         bankName: '',
+        phone: '',
       })
-
     } catch (error) {
       console.log('BANK ACCOUNT ERROR:', error)
 
@@ -162,10 +168,12 @@ const OwnerWallet = () => {
   const openBankModal = () => {
     if (bankAccount) {
       setBankForm({
-        accountHolderName: bankAccount.accountHolderName || '',
+        accountHolderName:
+          bankAccount.accountHolderName || '',
         accountNumber: '',
         ifsc: bankAccount.ifsc || '',
         bankName: bankAccount.bankName || '',
+        phone: '',
       })
     } else {
       setBankForm({
@@ -173,6 +181,7 @@ const OwnerWallet = () => {
         accountNumber: '',
         ifsc: '',
         bankName: '',
+        phone: '',
       })
     }
 
@@ -186,42 +195,48 @@ const OwnerWallet = () => {
         return {
           label: 'Pending',
           icon: Clock3,
-          className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+          className:
+            'bg-yellow-50 text-yellow-700 border-yellow-200',
         }
 
       case 'PROCESSING':
         return {
           label: 'Processing',
           icon: Clock3,
-          className: 'bg-blue-50 text-blue-700 border-blue-200',
+          className:
+            'bg-blue-50 text-blue-700 border-blue-200',
         }
 
       case 'SUCCESS':
         return {
           label: 'Successful',
           icon: CheckCircle2,
-          className: 'bg-green-50 text-green-700 border-green-200',
+          className:
+            'bg-green-50 text-green-700 border-green-200',
         }
 
       case 'FAILED':
         return {
           label: 'Failed',
           icon: XCircle,
-          className: 'bg-red-50 text-red-600 border-red-200',
+          className:
+            'bg-red-50 text-red-600 border-red-200',
         }
 
       default:
         return {
           label: 'Processing',
           icon: Clock3,
-          className: 'bg-slate-50 text-slate-600 border-slate-200',
+          className:
+            'bg-slate-50 text-slate-600 border-slate-200',
         }
     }
   }
 
   // Summary values
   const withdrawalTransactions = transactions.filter(
-    (transaction) => transaction.reason === 'WITHDRAWAL'
+    (transaction) =>
+      transaction.reason === 'WITHDRAWAL'
   )
 
   const totalWithdrawn = withdrawalTransactions.reduce(
@@ -230,16 +245,18 @@ const OwnerWallet = () => {
     0
   )
 
-  const processingWithdrawals = withdrawalTransactions.filter(
-    (transaction) =>
-      transaction.payoutStatus === 'PROCESSING' ||
-      transaction.payoutStatus === 'PENDING'
-  ).length
+  const processingWithdrawals =
+    withdrawalTransactions.filter(
+      (transaction) =>
+        transaction.payoutStatus === 'PROCESSING' ||
+        transaction.payoutStatus === 'PENDING'
+    ).length
 
-  const successfulWithdrawals = withdrawalTransactions.filter(
-    (transaction) =>
-      transaction.payoutStatus === 'SUCCESS'
-  ).length
+  const successfulWithdrawals =
+    withdrawalTransactions.filter(
+      (transaction) =>
+        transaction.payoutStatus === 'SUCCESS'
+    ).length
 
   // Loading state
   if (loading) {
@@ -259,9 +276,7 @@ const OwnerWallet = () => {
     <div className="min-h-screen bg-slate-50 p-5 md:p-7 lg:p-8">
 
       {/* Page Header */}
-
       <div className="mb-7">
-
         <h1 className="text-2xl md:text-3xl font-bold text-dc-ink font-baloo">
           My Wallet
         </h1>
@@ -269,25 +284,17 @@ const OwnerWallet = () => {
         <p className="text-sm text-dc-muted mt-1">
           Manage your daycare earnings and withdrawals
         </p>
-
       </div>
 
-
       {/* Error */}
-
       {error && (
         <div className="mb-5 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600 flex items-center gap-2">
-
           <AlertCircle size={17} />
-
           {error}
-
         </div>
       )}
 
-
       {/* Balance Card */}
-
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-dc-blue to-dc-green p-6 md:p-8 text-white shadow-lg mb-7">
 
         <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/10" />
@@ -301,9 +308,7 @@ const OwnerWallet = () => {
             <div className="flex items-center gap-3 mb-4">
 
               <div className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
-
                 <Wallet size={23} />
-
               </div>
 
               <span className="text-sm font-medium text-white/80">
@@ -321,7 +326,6 @@ const OwnerWallet = () => {
             </p>
 
           </div>
-
 
           <button
             disabled={balance <= 0 || !bankAccount}
@@ -341,13 +345,10 @@ const OwnerWallet = () => {
 
       </div>
 
-
       {/* Summary Cards */}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
 
         {/* Payout Account */}
-
         <div className="bg-white rounded-2xl border border-dc-border shadow-sm p-5 lg:col-span-2">
 
           <div className="flex items-start justify-between">
@@ -373,7 +374,6 @@ const OwnerWallet = () => {
 
             </div>
 
-
             {bankAccount && (
               <span className="px-2.5 py-1 rounded-full bg-green-50 text-green-600 text-xs font-semibold">
                 Active
@@ -381,7 +381,6 @@ const OwnerWallet = () => {
             )}
 
           </div>
-
 
           <div className="mt-5 rounded-xl bg-slate-50 border border-dc-border p-4">
 
@@ -411,7 +410,6 @@ const OwnerWallet = () => {
 
                 </div>
 
-
                 <p className="text-sm font-medium text-dc-ink mt-3">
                   A/C: {bankAccount.accountNumber}
                 </p>
@@ -425,6 +423,7 @@ const OwnerWallet = () => {
                 </p>
 
               </>
+
             ) : (
 
               <div>
@@ -452,15 +451,11 @@ const OwnerWallet = () => {
 
         </div>
 
-
         {/* Total Withdrawn */}
-
         <div className="bg-white rounded-2xl border border-dc-border shadow-sm p-5">
 
           <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center mb-4">
-
             <ArrowUpFromLine size={19} />
-
           </div>
 
           <p className="text-xs text-dc-muted">
@@ -473,15 +468,11 @@ const OwnerWallet = () => {
 
         </div>
 
-
         {/* Successful Withdrawals */}
-
         <div className="bg-white rounded-2xl border border-dc-border shadow-sm p-5">
 
           <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center mb-4">
-
             <CheckCircle2 size={19} />
-
           </div>
 
           <p className="text-xs text-dc-muted">
@@ -502,9 +493,7 @@ const OwnerWallet = () => {
 
       </div>
 
-
       {/* Transaction History */}
-
       <div className="bg-white rounded-2xl border border-dc-border shadow-sm">
 
         <div className="p-5 md:p-6 border-b border-dc-border">
@@ -534,11 +523,9 @@ const OwnerWallet = () => {
 
         </div>
 
-
         {transactions.length === 0 ? (
 
           /* Empty State */
-
           <div className="py-14 text-center">
 
             <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
@@ -598,30 +585,33 @@ const OwnerWallet = () => {
 
               </thead>
 
-
               <tbody className="divide-y divide-dc-border">
 
                 {transactions.map((transaction) => {
 
-                  const isCredit = transaction.type === 'CREDIT'
+                  const isCredit =
+                    transaction.type === 'CREDIT'
 
                   const isWithdrawal =
                     transaction.reason === 'WITHDRAWAL'
 
                   const payoutStatus = isWithdrawal
-                    ? getPayoutStatus(transaction.payoutStatus)
+                    ? getPayoutStatus(
+                        transaction.payoutStatus
+                      )
                     : null
 
-                  const StatusIcon = payoutStatus?.icon
+                  const StatusIcon =
+                    payoutStatus?.icon
 
                   return (
+
                     <tr
                       key={transaction._id}
                       className="hover:bg-slate-50 transition"
                     >
 
                       {/* Transaction */}
-
                       <td className="px-6 py-4">
 
                         <div className="flex items-center gap-3">
@@ -642,21 +632,23 @@ const OwnerWallet = () => {
 
                           </div>
 
-
                           <div>
 
                             <p className="font-semibold text-sm text-dc-ink">
 
-                              {transaction.reason === 'ENROLLMENT_PAYMENT'
+                              {transaction.reason ===
+                              'ENROLLMENT_PAYMENT'
                                 ? 'Enrollment Payment'
-                                : transaction.reason === 'WITHDRAWAL'
+                                : transaction.reason ===
+                                  'WITHDRAWAL'
                                 ? 'Wallet Withdrawal'
-                                : transaction.reason === 'REFUND'
+                                : transaction.reason ===
+                                  'REFUND'
                                 ? 'Refund'
-                                : transaction.reason || 'Wallet Transaction'}
+                                : transaction.reason ||
+                                  'Wallet Transaction'}
 
                             </p>
-
 
                             <p className="text-xs text-dc-muted mt-0.5">
 
@@ -672,9 +664,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-
                       {/* Type */}
-
                       <td className="px-6 py-4">
 
                         <span
@@ -689,24 +679,22 @@ const OwnerWallet = () => {
 
                       </td>
 
-
                       {/* Date */}
-
                       <td className="px-6 py-4">
 
                         <div className="flex items-center gap-2 text-sm text-dc-muted">
 
                           <CalendarDays size={15} />
 
-                          {formatDate(transaction.createdAt)}
+                          {formatDate(
+                            transaction.createdAt
+                          )}
 
                         </div>
 
                       </td>
 
-
                       {/* Status */}
-
                       <td className="px-6 py-4 text-center">
 
                         {isWithdrawal ? (
@@ -731,9 +719,7 @@ const OwnerWallet = () => {
 
                       </td>
 
-
                       {/* Amount */}
-
                       <td
                         className={`px-6 py-4 text-right font-bold ${
                           isCredit
@@ -744,20 +730,23 @@ const OwnerWallet = () => {
 
                         {isCredit ? '+' : '-'}
 
-                        {formatAmount(transaction.amount)}
+                        {formatAmount(
+                          transaction.amount
+                        )}
 
                       </td>
 
-
                       {/* Balance */}
-
                       <td className="px-6 py-4 text-right font-semibold text-dc-ink">
 
-                        {formatAmount(transaction.balanceAfter)}
+                        {formatAmount(
+                          transaction.balanceAfter
+                        )}
 
                       </td>
 
                     </tr>
+
                   )
                 })}
 
@@ -771,9 +760,7 @@ const OwnerWallet = () => {
 
       </div>
 
-
       {/* Withdraw Modal */}
-
       {showWithdrawModal && (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -806,9 +793,7 @@ const OwnerWallet = () => {
 
             </div>
 
-
             {/* Available Balance */}
-
             <div className="mt-5 rounded-xl bg-slate-50 p-4">
 
               <p className="text-xs text-dc-muted">
@@ -821,9 +806,7 @@ const OwnerWallet = () => {
 
             </div>
 
-
             {/* Payout Account */}
-
             <div className="mt-4 rounded-xl border border-dc-border p-4">
 
               <div className="flex items-center gap-2">
@@ -838,7 +821,6 @@ const OwnerWallet = () => {
                 </p>
 
               </div>
-
 
               {bankAccount ? (
                 <>
@@ -860,6 +842,7 @@ const OwnerWallet = () => {
                   </p>
 
                 </>
+
               ) : (
 
                 <p className="text-sm text-red-500 mt-2">
@@ -870,9 +853,7 @@ const OwnerWallet = () => {
 
             </div>
 
-
             {/* Amount Input */}
-
             <div className="mt-5">
 
               <label className="block text-sm font-medium text-dc-ink mb-2">
@@ -891,7 +872,6 @@ const OwnerWallet = () => {
                 className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
               />
 
-
               {withdrawAmount &&
                 Number(withdrawAmount) > balance && (
                   <p className="text-xs text-red-500 mt-2">
@@ -901,9 +881,7 @@ const OwnerWallet = () => {
 
             </div>
 
-
             {/* Buttons */}
-
             <div className="flex justify-end gap-3 mt-6">
 
               <button
@@ -916,7 +894,6 @@ const OwnerWallet = () => {
               >
                 Cancel
               </button>
-
 
               <button
                 type="button"
@@ -944,9 +921,7 @@ const OwnerWallet = () => {
         </div>
       )}
 
-
       {/* Add / Update Bank Account Modal */}
-
       {showBankModal && (
 
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -971,15 +946,16 @@ const OwnerWallet = () => {
 
               </div>
 
-
               <button
                 onClick={() => {
                   setShowBankModal(false)
+
                   setBankForm({
                     accountHolderName: '',
                     accountNumber: '',
                     ifsc: '',
                     bankName: '',
+                    phone: '',
                   })
                 }}
                 className="text-dc-muted hover:text-dc-ink text-xl"
@@ -989,14 +965,12 @@ const OwnerWallet = () => {
 
             </div>
 
-
             <form
               onSubmit={handleBankSubmit}
               className="mt-5 space-y-4"
             >
 
               {/* Account Holder */}
-
               <div>
 
                 <label className="block text-sm font-medium text-dc-ink mb-2">
@@ -1009,7 +983,8 @@ const OwnerWallet = () => {
                   onChange={(e) =>
                     setBankForm({
                       ...bankForm,
-                      accountHolderName: e.target.value,
+                      accountHolderName:
+                        e.target.value,
                     })
                   }
                   placeholder="Enter account holder name"
@@ -1019,9 +994,7 @@ const OwnerWallet = () => {
 
               </div>
 
-
               {/* Account Number */}
-
               <div>
 
                 <label className="block text-sm font-medium text-dc-ink mb-2">
@@ -1029,26 +1002,62 @@ const OwnerWallet = () => {
                 </label>
 
                 <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={18}
-                    value={bankForm.accountNumber}
-                    onChange={(e) =>
-                      setBankForm({
-                        ...bankForm,
-                        accountNumber: e.target.value.replace(/\D/g, ''),
-                      })
-                    }
-                    placeholder="Enter account number"
-                    className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
-                    required
-                  />
+                  type="text"
+                  inputMode="numeric"
+                  minLength={9}
+                  maxLength={18}
+                  value={bankForm.accountNumber}
+                  onChange={(e) =>
+                    setBankForm({
+                      ...bankForm,
+                      accountNumber:
+                        e.target.value.replace(/\D/g, ''),
+                    })
+                  }
+                  placeholder="Enter account number"
+                  className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
+                  required
+                />
 
               </div>
 
+              {/* Mobile Number */}
+              <div>
+
+                <label className="block text-sm font-medium text-dc-ink mb-2">
+                  Mobile Number
+                </label>
+
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  minLength={10}
+                  maxLength={10}
+                  value={bankForm.phone}
+                  onChange={(e) =>
+                    setBankForm({
+                      ...bankForm,
+                      phone: e.target.value.replace(/\D/g, ''),
+                    })
+                  }
+                  placeholder="Enter 10-digit mobile number"
+                  className="w-full rounded-xl border border-dc-border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-dc-blue"
+                  required
+                />
+
+                {bankForm.phone &&
+                  !/^[6-9]\d{9}$/.test(
+                    bankForm.phone
+                  ) && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Enter a valid 10-digit mobile number
+                      starting with 6, 7, 8, or 9.
+                    </p>
+                  )}
+
+              </div>
 
               {/* IFSC */}
-
               <div>
 
                 <label className="block text-sm font-medium text-dc-ink mb-2">
@@ -1061,7 +1070,8 @@ const OwnerWallet = () => {
                   onChange={(e) =>
                     setBankForm({
                       ...bankForm,
-                      ifsc: e.target.value.toUpperCase(),
+                      ifsc:
+                        e.target.value.toUpperCase(),
                     })
                   }
                   placeholder="Example: SBIN0001234"
@@ -1072,9 +1082,7 @@ const OwnerWallet = () => {
 
               </div>
 
-
               {/* Bank Name */}
-
               <div>
 
                 <label className="block text-sm font-medium text-dc-ink mb-2">
@@ -1097,20 +1105,20 @@ const OwnerWallet = () => {
 
               </div>
 
-
               {/* Buttons */}
-
               <div className="flex justify-end gap-3 pt-2">
 
                 <button
                   type="button"
                   onClick={() => {
                     setShowBankModal(false)
+
                     setBankForm({
                       accountHolderName: '',
                       accountNumber: '',
                       ifsc: '',
                       bankName: '',
+                      phone: '',
                     })
                   }}
                   className="px-4 py-2.5 rounded-xl border border-dc-border text-sm font-semibold text-dc-ink hover:bg-slate-50 transition"
@@ -1118,10 +1126,14 @@ const OwnerWallet = () => {
                   Cancel
                 </button>
 
-
                 <button
                   type="submit"
-                  disabled={bankLoading}
+                  disabled={
+                    bankLoading ||
+                    !/^[6-9]\d{9}$/.test(
+                      bankForm.phone
+                    )
+                  }
                   className="px-5 py-2.5 rounded-xl bg-dc-blue text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
 

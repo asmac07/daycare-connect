@@ -15,7 +15,7 @@ const Register = () => {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [phone, setPhone] = useState('')
+  
 
   const navigate = useNavigate()
 
@@ -33,10 +33,7 @@ const Register = () => {
       return false
     }
 
-    if (!phone || phone.length !== 10) {
-      toast.error('Please enter a valid 10-digit phone number')
-      return false
-    }
+   
 
     if (!password || password.length < 6) {
       toast.error('Password must be at least 6 characters')
@@ -146,25 +143,7 @@ const Register = () => {
             />
           </div>
 
-          {/* Phone */}
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-dc-green">
-              <Phone size={18} strokeWidth={2} />
-            </span>
-
-            <input
-              type="tel"
-              placeholder="Phone number"
-              value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value.replace(/\D/g, ''))
-                setError('')
-              }}
-              maxLength={10}
-              required
-              className="w-full rounded-full pl-11 pr-4 py-3 text-sm outline-none transition border-[1.5px] border-dc-border text-dc-ink bg-dc-field focus:border-dc-blue"
-            />
-          </div>
+         
 
           {/* Password */}
           <div className="relative">
