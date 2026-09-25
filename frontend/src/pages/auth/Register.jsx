@@ -1,12 +1,10 @@
-
-
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axiosInstance from '../../api/axiosInstance'
 import { ROLES, ROUTES } from '../../constants'
 import { toast } from 'react-toastify'
 import { isValidEmail } from '../../utils/validators'
-
+import { Phone } from 'lucide-react'
 
 const Register = () => {
   const [name, setName] = useState('')
@@ -22,31 +20,31 @@ const Register = () => {
   const navigate = useNavigate()
 
   const validateForm = () => {
-  setError('')
-  setSuccess('')
+    setError('')
+    setSuccess('')
 
-  if (!name || name.trim().length < 2) {
-    toast.error('Name must be at least 2 characters')
-    return false
+    if (!name || name.trim().length < 2) {
+      toast.error('Name must be at least 2 characters')
+      return false
+    }
+
+    if (!isValidEmail(email)) {
+      toast.error('Please enter a valid email')
+      return false
+    }
+
+    if (!phone || phone.length !== 10) {
+      toast.error('Please enter a valid 10-digit phone number')
+      return false
+    }
+
+    if (!password || password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return false
+    }
+
+    return true
   }
-
-  if (!isValidEmail(email)) {
-    toast.error('Please enter a valid email')
-    return false
-  }
-
-  if (!phone || phone.length !== 10) {
-  toast.error('Please enter a valid 10-digit phone number')
-  return false
-}
-
-  if (!password || password.length < 6) {
-    toast.error('Password must be at least 6 characters')
-    return false
-  }
-
-  return true
-}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -61,16 +59,16 @@ const Register = () => {
       await axiosInstance.post('/auth/register', { name, email, password, role, phone })
 
       toast.success('Registration successful! Please check your email for a verification code.')
-      setTimeout(() => navigate(`/verifyOtp?email=${encodeURIComponent(email)}`),1500) //encode is safe special charctres
+      setTimeout(() => navigate(`/verifyOtp?email=${encodeURIComponent(email)}`), 1500)
 
     }
-     catch (error) {
+    catch (error) {
       toast.error(error.response?.data?.message || 'Registration failed')
     }
 
     finally {
-    setIsSubmitting(false)
-  }
+      setIsSubmitting(false)
+    }
 
   }
 
@@ -148,26 +146,25 @@ const Register = () => {
             />
           </div>
 
-        {/* Phone */}
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-dc-green">
-            📞
-          </span>
+          {/* Phone */}
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-dc-green">
+              <Phone size={18} strokeWidth={2} />
+            </span>
 
-          <input
-            type="tel"
-            placeholder="Phone number"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value.replace(/\D/g, ''))
-              setError('')
-            }}
-            maxLength={10}
-            required
-            className="w-full rounded-full pl-11 pr-4 py-3 text-sm outline-none transition border-[1.5px] border-dc-border text-dc-ink bg-dc-field focus:border-dc-blue"
-          />
-        </div>
-
+            <input
+              type="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value.replace(/\D/g, ''))
+                setError('')
+              }}
+              maxLength={10}
+              required
+              className="w-full rounded-full pl-11 pr-4 py-3 text-sm outline-none transition border-[1.5px] border-dc-border text-dc-ink bg-dc-field focus:border-dc-blue"
+            />
+          </div>
 
           {/* Password */}
           <div className="relative">
@@ -216,7 +213,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            
+
             className="w-full text-white py-3 rounded-full font-semibold text-sm tracking-wide transition transform hover:scale-[1.02] active:scale-[0.98] font-baloo bg-gradient-to-br from-dc-blue to-dc-green shadow-[0_10px_25px_-8px_rgba(74,144,164,0.55)]"
           >
             {isSubmitting ? 'Registering...' : 'Register'}

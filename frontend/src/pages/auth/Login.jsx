@@ -172,45 +172,43 @@ const Login = () => {
           <div className="flex-1 h-px bg-dc-border" />
         </div>
 
-        {/* Google Login */}
+        {/* Google Login — centered with flex, no width overrides */}
         <div className="flex justify-center">
-          <div className="w-full [&>div]:!w-full [&_iframe]:!w-full">
-            <GoogleLogin
-              onSuccess={async (credentialResponse) => {
-                try {
-                  const response = await axiosInstance.post('/auth/google', {
-                    token: credentialResponse.credential
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                const response = await axiosInstance.post('/auth/google', {
+                  token: credentialResponse.credential
+                })
+
+                if (response.data.isNewUser) {
+                  navigate('/selectRole', {
+                    state: {
+                      token: credentialResponse.credential,
+                      name: response.data.data.name,
+                      email: response.data.data.email
+                    }
                   })
-
-                  if (response.data.isNewUser) {
-                    navigate('/selectRole', {
-                      state: {
-                        token: credentialResponse.credential,
-                        name: response.data.data.name,
-                        email: response.data.data.email
-                      }
-                    })
-                    return
-                  }
-
-                  dispatch(loginSuccess({
-                    user: response.data.data,
-                    token: response.data.accessToken,
-                  }))
-
-                  navigate(getDashboardRoute(response.data.data.role), { replace: true })
-
+                  return
                 }
-                catch (error) {
-                  console.log('Google login error:', error)
-                  console.log('Response:', error.response?.data)
 
-                  toast.error(error.response?.data?.message || 'Google login failed')
-                }
-              }}
-              onError={() => setError('Google login failed')}
-            />
-          </div>
+                dispatch(loginSuccess({
+                  user: response.data.data,
+                  token: response.data.accessToken,
+                }))
+
+                navigate(getDashboardRoute(response.data.data.role), { replace: true })
+
+              }
+              catch (error) {
+                console.log('Google login error:', error)
+                console.log('Response:', error.response?.data)
+
+                toast.error(error.response?.data?.message || 'Google login failed')
+              }
+            }}
+            onError={() => setError('Google login failed')}
+          />
         </div>
 
         <p className="text-center text-sm mt-6 text-dc-muted">
