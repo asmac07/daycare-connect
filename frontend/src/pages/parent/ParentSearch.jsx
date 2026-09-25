@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import axiosInstance from '../../api/axiosInstance'
 import { toast } from 'react-toastify'
-import { Search, MapPin, X, AlertTriangle, Star } from 'lucide-react'
+import { Search, MapPin, X, AlertTriangle, Star, House } from 'lucide-react'
 
 const ParentSearch = () => {
   // Enrollment states
@@ -396,27 +396,32 @@ const ParentSearch = () => {
           </div>
         </form>
 
-        {searchMode === 'nearby' && location && (
-          <div className="bg-white/90 rounded-2xl p-4 mb-6 shadow-sm">
-            <div className="flex items-center gap-1.5 text-sm text-dc-muted">
-              <MapPin
-                size={14}
-                strokeWidth={2.4}
-                className="text-dc-blue flex-shrink-0"
-              />
-              Showing daycares near your location
-            </div>
-          </div>
-        )}
+          {/* LOADING */}
+          {loading && (
+            <div className="text-center py-10">
+              <div className="flex justify-center items-center gap-2 mb-3">
+                <MapPin
+                  size={24}
+                  strokeWidth={2.2}
+                  className="text-dc-blue"
+                />
+                <Search
+                  size={20}
+                  strokeWidth={2.2}
+                  className="text-dc-green"
+                />
+                <House
+                  size={24}
+                  strokeWidth={2.2}
+                  className="text-dc-blue"
+                />
+              </div>
 
-        {/* LOADING */}
-        {loading && (
-          <div className="text-center py-10">
-            <p className="text-dc-muted">
-              Finding nearby daycares...
-            </p>
-          </div>
-        )}
+              <p className="text-dc-muted">
+                Finding nearby daycares...
+              </p>
+            </div>
+          )}
 
         {/* NO DATA */}
         {!loading && daycares.length === 0 && (
