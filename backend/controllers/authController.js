@@ -5,6 +5,7 @@ const mongoose = require("mongoose")
 
 const User = require('../models/User')
 const Daycare = require('../models/Daycare')
+const Wallet = require('../models/Wallet')
 
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
@@ -14,13 +15,14 @@ const sendEmail = require('../utils/sendEmail')
 
 const { ROLES, USER_STATUS } = require('../constants')
 
-const register = async (req, res) => {
 
-  const session = await mongoose.startSession();
-  
+const register = async (req, res) => {
+  const session = await mongoose.startSession()
+
   try {
-    session.startTransaction();
-    const { name, email, password, role ,phone} = req.body
+    session.startTransaction()
+
+    const { name, email, password, role, phone } = req.body
 
     if (!name || name.trim() === '') {
       return res.status(400).json({
@@ -30,6 +32,7 @@ const register = async (req, res) => {
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
     if (!emailRegex.test(email)) {
       return res.status(400).json({
         success: false,
@@ -51,13 +54,11 @@ const register = async (req, res) => {
       })
     }
 
-
-    if (![ ROLES.PARENT,
-            ROLES.OWNER].includes(role)) {
-            return res.status(400).json({
-              success: false,
-              message: 'Invalid role selected'
-            })
+    if (![ROLES.PARENT, ROLES.OWNER].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid role selected'
+      })
     }
 
     const status = USER_STATUS.ACTIVE
@@ -73,14 +74,6 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // const user = await User.create({
-    //   name,
-    //   email,
-    //   password: hashedPassword,
-    //   role,
-    //   status
-    // })
-
     const user = new User({
       name,
       email,
@@ -89,45 +82,59 @@ const register = async (req, res) => {
       status,
       phone
     })
+
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
-      user.otp = otpCode
+    user.otp = otpCode
+    user.otpExpires = Date.now() + 15 * 60 * 1000
 
-      user.otpExpires = Date.now() + 15 * 60 * 1000
+    await user.save({ session })
 
-      await user.save( { session } )
-      
-      await sendEmail(
-                  user.email,
-                  'Verify Your Email - DayCare Connect',
-                  `<p>Hi ${user.name},</p>
-                  <p>Your verification code is: <strong>${otpCode}</strong></p>
-                  <p>This code expires in 15 minutes.</p>`
-                )
+    // Create wallet automatically for owner
+    if (role === ROLES.OWNER) {
+      await Wallet.create(
+        [
+          {
+            owner: user._id,
+            balance: 0
+          }
+        ],
+        { session }
+      )
+    }
 
-                await session.commitTransaction()
+    await sendEmail(
+      user.email,
+      'Verify Your Email - DayCare Connect',
+      `<p>Hi ${user.name},</p>
+      <p>Your verification code is: <strong>${otpCode}</strong></p>
+      <p>This code expires in 15 minutes.</p>`
+    )
+
+    await session.commitTransaction()
 
     res.status(201).json({
       success: true,
-      message: 'Registration successful. Please verify your email using the OTP sent to your email address.',
-       data: { id: user._id, name: user.name, email: user.email }
+      message:
+        'Registration successful. Please verify your email using the OTP sent to your email address.',
+      data: {
+        id: user._id,
+        name: user.name,
+        email: user.email
+      }
     })
-
-  } 
-  
-  catch (error) {
-
+  } catch (error) {
     await session.abortTransaction()
 
     res.status(500).json({
       success: false,
       message: error.message
     })
-  }
-  finally{
+  } finally {
     session.endSession()
   }
 }
+
 
 const login = async (req, res) => {
   try {
