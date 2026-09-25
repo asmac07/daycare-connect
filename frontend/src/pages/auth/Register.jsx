@@ -53,7 +53,7 @@ const Register = () => {
     setIsSubmitting(true)
 
     try {
-      await axiosInstance.post('/auth/register', { name, email, password, role, phone })
+      await axiosInstance.post('/auth/register', { name, email, password, role })
 
       toast.success('Registration successful! Please check your email for a verification code.')
       setTimeout(() => navigate(`/verifyOtp?email=${encodeURIComponent(email)}`), 1500)
