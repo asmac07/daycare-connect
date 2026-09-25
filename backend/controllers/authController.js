@@ -20,7 +20,7 @@ const register = async (req, res) => {
   
   try {
     session.startTransaction();
-    const { name, email, password, role } = req.body
+    const { name, email, password, role ,phone} = req.body
 
     if (!name || name.trim() === '') {
       return res.status(400).json({
@@ -86,7 +86,8 @@ const register = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      status
+      status,
+      phone
     })
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
 
