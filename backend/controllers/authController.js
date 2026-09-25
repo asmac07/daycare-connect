@@ -639,6 +639,13 @@ const completeGoogleSignup = async (req, res) => {
       isVerified: true
     })
 
+    if (role === ROLES.OWNER) {
+      await Wallet.create({
+        owner: user._id,
+        balance: 0
+      })
+    }
+
     const accessToken = jwt.sign(
       { id: user._id, role: user.role, daycare: user.daycare },
       process.env.JWT_SECRET,
