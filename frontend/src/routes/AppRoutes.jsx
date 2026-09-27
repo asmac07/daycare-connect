@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ROLES } from '../constants'
 
@@ -35,13 +34,13 @@ import ParentEnrollments from '../pages/parent/ParentEnrollments'
 import ParentVisitSlots from '../pages/parent/ParentVisitSlots'
 import ParentMessages from '../pages/parent/ParentMessages'
 import ParentStaffMessages from '../pages/parent/ParentStaffMessages'
+import ParentDailyChildUpdates from '../pages/parent/ParentDailyChildUpdates'
 
 import StaffDashboard from '../pages/staff/StaffDashboard'
 import StaffAssignedChildren from '../pages/staff/StaffAssignedChildren'
-// import StaffDaycare from '../pages/staff/StaffDaycare'
 import StaffParentChats from '../pages/staff/StaffParentChats'
 import SelectRole from '../pages/auth/SelectRole'
-
+import StaffDailyCare from '../pages/staff/StaffDailyCare'
 
 
 const AppRoutes = () => {
@@ -58,6 +57,7 @@ const AppRoutes = () => {
         <Route path="/verifyOtp" element={<VerifyOtp />} />
         <Route path="/selectRole" element={<SelectRole />} />
 
+        {/* Admin */}
         <Route
           path="/admin"
           element={
@@ -71,7 +71,7 @@ const AppRoutes = () => {
           <Route path="daycares" element={<AdminPanel />} />
         </Route>
 
-
+        {/* Owner */}
         <Route
           path="/owner"
           element={
@@ -81,7 +81,6 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<OwnerDashboard />} />
           <Route path="daycare" element={<OwnerDaycare />} />
           <Route path="enrollments" element={<OwnerEnrollments />} />
@@ -89,10 +88,10 @@ const AppRoutes = () => {
           <Route path="reviews" element={<OwnerReviews />} />
           <Route path="visitSlots" element={<OwnerVisitSlots />} />
           <Route path="messages" element={<OwnerMessages />} />
-          <Route path="/owner/wallet" element={  <OwnerWallet />  }/>
+          <Route path="/owner/wallet" element={<OwnerWallet />} />
         </Route>
 
-
+        {/* Parent */}
         <Route
           path="/parent"
           element={
@@ -102,7 +101,6 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<ParentDashboard />} />
           <Route path="children" element={<ParentChildren />} />
           <Route path="search" element={<ParentSearch />} />
@@ -110,9 +108,14 @@ const AppRoutes = () => {
           <Route path="visitSlots" element={<ParentVisitSlots />} />
           <Route path="messages" element={<ParentMessages />} />
           <Route path="staff-chats" element={<ParentStaffMessages />} />
+
+          <Route
+            path="daily-child-updates"
+            element={<ParentDailyChildUpdates />}
+          />
         </Route>
 
-        
+        {/* Staff */}
         <Route
           path="/staff"
           element={
@@ -122,13 +125,20 @@ const AppRoutes = () => {
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
-
           <Route path="dashboard" element={<StaffDashboard />} />
-           <Route path="assigned-children" element={<StaffAssignedChildren />} />
-           <Route path="parent-chats" element={<StaffParentChats />} />
+          <Route
+            path="assigned-children"
+            element={<StaffAssignedChildren />}
+          />
+          <Route path="parent-chats" element={<StaffParentChats />} />
 
-            </Route>
-          </Route>
+          <Route
+            path="daily-care"
+            element={<StaffDailyCare />}
+          />
+        </Route>
+
+      </Route>
     </Routes>
   )
 }

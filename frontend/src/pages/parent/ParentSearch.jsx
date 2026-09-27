@@ -1,8 +1,14 @@
-
 import { useEffect, useState } from 'react'
 import axiosInstance from '../../api/axiosInstance'
 import { toast } from 'react-toastify'
-import { Search, MapPin, X, AlertTriangle, Star, House } from 'lucide-react'
+import {
+  Search,
+  MapPin,
+  X,
+  AlertTriangle,
+  Star,
+  House,
+} from 'lucide-react'
 
 const ParentSearch = () => {
   // Enrollment states
@@ -19,7 +25,7 @@ const ParentSearch = () => {
   const [daycares, setDaycares] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchMode, setSearchMode] = useState('nearby')
+  const [searchMode, setSearchMode] = useState('all')
 
   // Pagination
   const [page, setPage] = useState(1)
@@ -34,39 +40,38 @@ const ParentSearch = () => {
   const [availabilityError, setAvailabilityError] = useState('')
   const [checkingAvailability, setCheckingAvailability] = useState(false)
 
-  const getUserLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error('Geolocation is not supported by your browser')
-      return
-    }
+  const fetchAllDaycares = async () => {
+    try {
+      setLoading(true)
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        })
-      },
-      (error) => {
-        console.error('Location error:', error)
-        toast.error('Please allow location access to find nearby daycares')
-      }
-    )
+      const response = await axiosInstance.get('/daycare/approved')
+
+      setDaycares(response.data.data || [])
+    } catch (error) {
+      console.error('Failed to fetch daycares:', error)
+
+      toast.error(
+        error.response?.data?.message ||
+          'Failed to fetch daycares'
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const fetchNearbyDaycares = async () => {
-    if (!location) return
+  const fetchNearbyDaycares = async (currentLocation = location) => {
+    if (!currentLocation) return
 
     try {
       setLoading(true)
 
       const response = await axiosInstance.get('/daycare/search', {
         params: {
-          lat: location.lat,
-          lng: location.lng,
+          lat: currentLocation.lat,
+          lng: currentLocation.lng,
           page,
-          limit
-        }
+          limit,
+        },
       })
 
       const data = response.data
@@ -79,11 +84,40 @@ const ParentSearch = () => {
 
       toast.error(
         error.response?.data?.message ||
-        'Failed to fetch nearby daycares'
+          'Failed to fetch nearby daycares'
       )
     } finally {
       setLoading(false)
     }
+  }
+
+  const getUserLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by your browser')
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const currentLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }
+
+        setLocation(currentLocation)
+
+        // Immediately fetch nearby daycares
+        if (searchMode === 'nearby') {
+          fetchNearbyDaycares(currentLocation)
+        }
+      },
+      (error) => {
+        console.error('Location error:', error)
+        toast.error(
+          'Please allow location access to find nearby daycares'
+        )
+      }
+    )
   }
 
   const fetchSearchedDaycares = async () => {
@@ -95,13 +129,16 @@ const ParentSearch = () => {
     try {
       setLoading(true)
 
-      const response = await axiosInstance.get('/daycare/search-daycare', {
-        params: {
-          search: searchTerm,
-          page,
-          limit
+      const response = await axiosInstance.get(
+        '/daycare/search-daycare',
+        {
+          params: {
+            search: searchTerm,
+            page,
+            limit,
+          },
         }
-      })
+      )
 
       const data = response.data
 
@@ -113,7 +150,7 @@ const ParentSearch = () => {
 
       toast.error(
         error.response?.data?.message ||
-        'Failed to search daycares'
+          'Failed to search daycares'
       )
     } finally {
       setLoading(false)
@@ -141,23 +178,29 @@ const ParentSearch = () => {
 
       toast.error(
         error.response?.data?.message ||
-        'Failed to fetch children'
+          'Failed to fetch children'
       )
     }
   }
 
+  // Initial page load
   useEffect(() => {
+    fetchAllDaycares()
     getUserLocation()
     fetchChildren()
   }, [])
 
+  // Fetch when page or search mode changes
   useEffect(() => {
-    if (searchMode === 'nearby') {
-      fetchNearbyDaycares()
-    } else {
-      fetchSearchedDaycares()
-    }
-  }, [location, page, searchMode])
+      if (searchMode === 'nearby' && location) {
+        fetchNearbyDaycares(location)
+      }
+
+      if (searchMode === 'search') {
+        fetchSearchedDaycares()
+      }
+    }, [page, searchMode])
+  
 
   const getGoogleMapsLink = (daycare) => {
     if (!daycare.location?.coordinates) return '#'
@@ -262,13 +305,13 @@ const ParentSearch = () => {
           ageGroup,
           package: packageType,
           startDate,
-          endDate
+          endDate,
         }
       )
 
       toast.success(
         response.data.message ||
-        'Enrollment request submitted successfully'
+          'Enrollment request submitted successfully'
       )
 
       setSelectedDaycare(null)
@@ -315,8 +358,8 @@ const ParentSearch = () => {
           params: {
             daycareId: selectedDaycare._id,
             startDate: start,
-            endDate: end
-          }
+            endDate: end,
+          },
         }
       )
 
@@ -396,32 +439,34 @@ const ParentSearch = () => {
           </div>
         </form>
 
-          {/* LOADING */}
-          {loading && (
-            <div className="text-center py-10">
-              <div className="flex justify-center items-center gap-2 mb-3">
-                <MapPin
-                  size={24}
-                  strokeWidth={2.2}
-                  className="text-dc-blue"
-                />
-                <Search
-                  size={20}
-                  strokeWidth={2.2}
-                  className="text-dc-green"
-                />
-                <House
-                  size={24}
-                  strokeWidth={2.2}
-                  className="text-dc-blue"
-                />
-              </div>
+        {/* LOADING */}
+        {loading && (
+          <div className="text-center py-10">
+            <div className="flex justify-center items-center gap-2 mb-3">
+              <MapPin
+                size={24}
+                strokeWidth={2.2}
+                className="text-dc-blue"
+              />
 
-              <p className="text-dc-muted">
-                Finding nearby daycares...
-              </p>
+              <Search
+                size={20}
+                strokeWidth={2.2}
+                className="text-dc-green"
+              />
+
+              <House
+                size={24}
+                strokeWidth={2.2}
+                className="text-dc-blue"
+              />
             </div>
-          )}
+
+            <p className="text-dc-muted">
+              Finding nearby daycares...
+            </p>
+          </div>
+        )}
 
         {/* NO DATA */}
         {!loading && daycares.length === 0 && (
@@ -638,13 +683,16 @@ const ParentSearch = () => {
                 />
 
                 {selectedDaycare.averageRating
-                  ? Number(selectedDaycare.averageRating).toFixed(1)
+                  ? Number(
+                      selectedDaycare.averageRating
+                    ).toFixed(1)
                   : 'No rating'}
               </p>
 
               <p className="text-sm mt-1">
                 <strong>Total Capacity:</strong>{' '}
-                {selectedDaycare.seatCapacity ?? 'Not available'}
+                {selectedDaycare.seatCapacity ??
+                  'Not available'}
               </p>
 
               {checkingAvailability && (
@@ -675,7 +723,9 @@ const ParentSearch = () => {
 
                 <select
                   value={selectedChild}
-                  onChange={(e) => setSelectedChild(e.target.value)}
+                  onChange={(e) =>
+                    setSelectedChild(e.target.value)
+                  }
                   disabled={enrolling}
                   className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                 >
@@ -708,7 +758,9 @@ const ParentSearch = () => {
 
                 <select
                   value={ageGroup}
-                  onChange={(e) => setAgeGroup(e.target.value)}
+                  onChange={(e) =>
+                    setAgeGroup(e.target.value)
+                  }
                   disabled={enrolling}
                   className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                 >
@@ -746,7 +798,10 @@ const ParentSearch = () => {
 
                     if (startDate && value) {
                       const calculatedEndDate =
-                        calculateEndDate(startDate, value)
+                        calculateEndDate(
+                          startDate,
+                          value
+                        )
 
                       setEndDate(calculatedEndDate)
 
@@ -816,7 +871,11 @@ const ParentSearch = () => {
                         setAvailability(null)
                       }
                     }}
-                    min={new Date().toISOString().split('T')[0]}
+                    min={
+                      new Date()
+                        .toISOString()
+                        .split('T')[0]
+                    }
                     disabled={enrolling}
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-white text-sm text-dc-ink outline-none focus:border-dc-blue disabled:bg-dc-hover transition"
                   />
@@ -832,7 +891,11 @@ const ParentSearch = () => {
                     type="date"
                     value={endDate}
                     readOnly
-                    disabled={enrolling || !startDate || !packageType}
+                    disabled={
+                      enrolling ||
+                      !startDate ||
+                      !packageType
+                    }
                     className="w-full rounded-full px-4 py-3 border-[1.5px] border-dc-border bg-dc-hover text-sm text-dc-ink outline-none cursor-not-allowed transition"
                   />
                 </div>

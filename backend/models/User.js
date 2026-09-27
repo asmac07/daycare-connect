@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
 
             designation: {
                     type: String,
-                    enum: ['Teacher', 'Caretaker', 'Nurse', 'Administrator'],
+                    enum: ['Teacher', 'Caretaker', 'Nurse','Other'],
                     
             },
 

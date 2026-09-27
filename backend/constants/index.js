@@ -10,7 +10,8 @@ const ENROLLMENT_STATUS = {
             PENDING: 'pending',
             APPROVED: 'approved',
             REJECTED: 'rejected',
-            CONFIRMED: 'confirmed'
+            CONFIRMED: 'confirmed',
+            EXPIRED: 'expired'
         }
 
 const PAYMENT_STATUS = {

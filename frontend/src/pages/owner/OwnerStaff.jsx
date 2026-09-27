@@ -74,6 +74,11 @@ const OwnerStaff = () => {
         password: staffPassword,
         designation
       })
+      if (!designation) {
+          toast.warning('Please select a designation')
+          return false
+        }
+        
       toast.success('Staff account created successfully!')
       setStaffName('')
       setStaffEmail('')
@@ -246,13 +251,17 @@ return (
               />
             )}
 
-            <input
-              type="text"
-              placeholder="Designation"
+            <select
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
               className="w-full rounded-full px-4 py-2.5 text-sm border-[1.5px] border-dc-border bg-dc-field text-dc-ink outline-none focus:border-dc-blue transition"
-            />
+            >
+              <option value="">Select Designation</option>
+              <option value="Teacher">Teacher</option>
+              <option value="Caretaker">Caretaker</option>
+              <option value="Nurse">Nurse</option>
+              <option value="Other">Other</option>
+            </select>
 
             <div className="flex gap-2 pt-2">
               <button

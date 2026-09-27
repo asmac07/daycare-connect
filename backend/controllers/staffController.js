@@ -179,16 +179,38 @@ const toggleStaffStatus = async (req, res) => {
 
 const getAssignedChildren = async (req, res) => {
   try {
-    const enrollments = await Enrollment.find({
+    const page = Number(req.query.page) || 1
+    const limit = Number(req.query.limit) || 6
+    const skip = (page - 1) * limit
+
+    const filter = {
       assignedStaff: req.user.id,
-      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED
-    })
-      .populate('child', 'name dateOfBirth gender medicalNotes')
-      .populate('parent', 'name email phone')
-      .populate('daycare', 'name address')
+      enrollmentStatus: {
+        $in: [
+          ENROLLMENT_STATUS.CONFIRMED,
+          ENROLLMENT_STATUS.EXPIRED
+        ]
+      }
+    }
+
+    const [enrollments, total] = await Promise.all([
+      Enrollment.find(filter)
+        .populate('child', 'name dateOfBirth gender medicalNotes')
+        .populate('parent', 'name email phone')
+        .populate('daycare', 'name address')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+
+      Enrollment.countDocuments(filter)
+    ])
 
     const children = enrollments.map((enrollment) => ({
       enrollmentId: enrollment._id,
+      enrollmentStatus: enrollment.enrollmentStatus,
+      startDate: enrollment.startDate,
+      endDate: enrollment.endDate,
+      assignedStaff: enrollment.assignedStaff,
       child: enrollment.child,
       parent: enrollment.parent,
       daycare: enrollment.daycare
@@ -196,7 +218,13 @@ const getAssignedChildren = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: children
+      data: children,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        totalChildren: total,
+        limit
+      }
     })
 
   } catch (error) {
@@ -208,6 +236,7 @@ const getAssignedChildren = async (req, res) => {
     })
   }
 }
+
 
 const getAssignedParents = async (req, res) => {
   try {

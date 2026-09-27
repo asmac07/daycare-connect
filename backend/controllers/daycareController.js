@@ -334,12 +334,12 @@ const searchDaycare = async (req, res) => {
   }
 }
 
-
 const getApprovedDaycares = async (req, res) => {
   try {
     const daycares = await Daycare.find({
-      verificationStatus: DAYCARE_STATUS.APPROVED
-    }).select('name');
+      verificationStatus: DAYCARE_STATUS.APPROVED,
+      isBlocked: false
+    })
 
     res.status(200).json({
       success: true,
@@ -353,7 +353,6 @@ const getApprovedDaycares = async (req, res) => {
     })
   }
 }
-
 module.exports = { createDaycare ,
                     getMyDaycare ,
                     updateDaycare,
