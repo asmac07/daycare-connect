@@ -1,5 +1,5 @@
+
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import axiosInstance from '../../api/axiosInstance'
 
 import {
@@ -10,13 +10,10 @@ import {
   Moon,
   Palette,
   User,
-  CalendarDays,
-  RefreshCw
+  CalendarDays
 } from 'lucide-react'
 
 const ParentDailyChildUpdates = () => {
-  const navigate = useNavigate()
-
   const [updates, setUpdates] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,10 +44,6 @@ const ParentDailyChildUpdates = () => {
     fetchUpdates()
   }, [])
 
-  /*
-   * Backend already returns one record per child.
-   * So we don't need to group/filter latest updates here.
-   */
   const filteredUpdates = updates.filter(
     (update) =>
       update.child?.name
@@ -106,15 +99,6 @@ const ParentDailyChildUpdates = () => {
       icon: Palette
     }
   ]
-
-  const handleRenewEnrollment = (update) => {
-    navigate('/parent/enrollments', {
-      state: {
-        childId: update.child?._id,
-        enrollmentId: update.enrollment?._id
-      }
-    })
-  }
 
   if (loading) {
     return (
@@ -229,9 +213,6 @@ const ParentDailyChildUpdates = () => {
           const childName =
             update.child?.name || 'Child'
 
-          const isExpired =
-            update.enrollment?.enrollmentStatus === 'expired'
-
           /*
            * If date exists, an actual daily care update exists.
            * If date is null, the child is active but
@@ -249,89 +230,41 @@ const ParentDailyChildUpdates = () => {
             >
 
               {/* Child Header */}
-              <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-4">
 
-                <div className="flex items-center gap-3">
-
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dc-blue to-dc-green flex items-center justify-center flex-shrink-0 text-white font-bold font-baloo text-sm">
-                    {childName
-                      .charAt(0)
-                      .toUpperCase()}
-                  </div>
-
-                  <div>
-
-                    <h2 className="text-base font-semibold font-baloo text-dc-ink leading-tight">
-                      {childName}
-                    </h2>
-
-                    <p className="text-xs text-dc-muted flex items-center gap-1 mt-0.5">
-
-                      <CalendarDays
-                        size={11}
-                        strokeWidth={2.4}
-                      />
-
-                      {update.date
-                        ? new Date(
-                            update.date
-                          ).toLocaleDateString()
-                        : 'No update yet'}
-
-                    </p>
-
-                  </div>
-
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-dc-blue to-dc-green flex items-center justify-center flex-shrink-0 text-white font-bold font-baloo text-sm">
+                  {childName
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
 
-                {/* Status */}
-                <span
-                  className={
-                    isExpired
-                      ? 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-dc-error-bg text-dc-error-text'
-                      : 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-dc-green/15 text-dc-green'
-                  }
-                >
-                  {isExpired ? 'EXPIRED' : 'ACTIVE'}
-                </span>
+                <div>
+
+                  <h2 className="text-base font-semibold font-baloo text-dc-ink leading-tight">
+                    {childName}
+                  </h2>
+
+                  <p className="text-xs text-dc-muted flex items-center gap-1 mt-0.5">
+
+                    <CalendarDays
+                      size={11}
+                      strokeWidth={2.4}
+                    />
+
+                    {update.date
+                      ? new Date(
+                          update.date
+                        ).toLocaleDateString()
+                      : 'No update yet'}
+
+                  </p>
+
+                </div>
 
               </div>
 
-              {/* Expired Notice */}
-              {isExpired && (
-                <div className="bg-dc-error-bg rounded-2xl p-4 mb-4">
-
-                  <p className="text-sm text-dc-error-text font-semibold">
-                    {childName}'s enrollment has expired.
-                  </p>
-
-                  <p className="text-xs text-dc-error-text/80 mt-1">
-                    Renew the enrollment to continue
-                    receiving daily care updates.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleRenewEnrollment(update)
-                    }
-                    className="w-full mt-3 bg-dc-blue text-white py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-2"
-                  >
-
-                    <RefreshCw
-                      size={15}
-                      strokeWidth={2.2}
-                    />
-
-                    Renew {childName}'s Enrollment
-
-                  </button>
-
-                </div>
-              )}
-
               {/* No Update Yet */}
-              {!hasDailyUpdate && !isExpired && (
+              {!hasDailyUpdate && (
                 <div className="bg-dc-mist rounded-2xl p-4 mb-4">
 
                   <p className="text-sm text-dc-ink font-semibold">
@@ -478,3 +411,4 @@ const ParentDailyChildUpdates = () => {
 }
 
 export default ParentDailyChildUpdates
+
