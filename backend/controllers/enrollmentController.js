@@ -442,6 +442,7 @@ const deleteEnrollment = async (req, res) => {
 
 // // parent
 
+
 const getMyEnrollments = async (req, res) => {
   try {
     const pageNumber = Number(req.query.page) || 1
@@ -480,14 +481,8 @@ const getMyEnrollments = async (req, res) => {
       })
     }
 
-    // Normal paginated enrollments
-    const skip = (pageNumber - 1) * limitNumber
-
-    const totalEnrollments = await Enrollment.countDocuments({
-      parent: req.user.id
-    })
-
-    const enrollments = await Enrollment.find({
+    // Get all enrollments for this parent
+    const allEnrollments = await Enrollment.find({
       parent: req.user.id
     })
       .populate('child')
@@ -501,20 +496,81 @@ const getMyEnrollments = async (req, res) => {
         }
       })
       .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNumber)
+
+    // Today's date
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    // Keep only the latest/current enrollment for each child
+    const latestEnrollmentByChild = new Map()
+
+    allEnrollments.forEach((enrollment) => {
+      const childId = enrollment.child?._id?.toString()
+
+      if (!childId) return
+
+      // Since enrollments are sorted newest first,
+      // the first enrollment we find for a child is the latest one.
+      if (!latestEnrollmentByChild.has(childId)) {
+        latestEnrollmentByChild.set(childId, enrollment)
+      }
+
+      // If an active confirmed enrollment exists,
+      // always prefer that enrollment.
+      if (
+        enrollment.enrollmentStatus === 'confirmed' &&
+        enrollment.startDate &&
+        enrollment.endDate
+      ) {
+        const startDate = new Date(enrollment.startDate)
+        const endDate = new Date(enrollment.endDate)
+
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(0, 0, 0, 0)
+
+        const isActive =
+          today >= startDate &&
+          today <= endDate
+
+        if (isActive) {
+          latestEnrollmentByChild.set(
+            childId,
+            enrollment
+          )
+        }
+      }
+    })
+
+    const enrollments = Array.from(
+      latestEnrollmentByChild.values()
+    )
+
+    // Pagination after filtering duplicate child enrollments
+    const totalEnrollments = enrollments.length
+
+    const skip = (pageNumber - 1) * limitNumber
+
+    const paginatedEnrollments = enrollments.slice(
+      skip,
+      skip + limitNumber
+    )
 
     res.status(200).json({
       success: true,
       page: pageNumber,
       limit: limitNumber,
       total: totalEnrollments,
-      totalPages: Math.ceil(totalEnrollments / limitNumber),
-      data: enrollments
+      totalPages: Math.ceil(
+        totalEnrollments / limitNumber
+      ),
+      data: paginatedEnrollments
     })
 
   } catch (error) {
-    console.error('GET MY ENROLLMENTS ERROR:', error)
+    console.error(
+      'GET MY ENROLLMENTS ERROR:',
+      error
+    )
 
     res.status(500).json({
       success: false,
@@ -522,6 +578,8 @@ const getMyEnrollments = async (req, res) => {
     })
   }
 }
+
+
 
 const getDaycareEnrollments = async (req, res) => {
   try {
