@@ -9,9 +9,6 @@ const mongoose = require('mongoose')
 const Wallet = require('../models/Wallet')
 const WalletTransaction = require('../models/WalletTransaction')
 
-console.log("Razorpay Key ID:", process.env.RAZORPAY_KEY_ID)
-console.log("Razorpay Secret exists:", !!process.env.RAZORPAY_KEY_SECRET)
-
     // this connect backend to razorpay accnt
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -105,13 +102,7 @@ const createOrder = async (req, res) => {
 
   } catch (error) {
 
-   console.log('CREATE ORDER ERROR:', {
-  message: error.message,
-  statusCode: error.statusCode,
-  error: error.error,
-  description: error.error?.description,
-  code: error.error?.code
-})
+
     res.status(500).json({ 
         success: false,
          message: error.message 
@@ -275,7 +266,7 @@ const verifyPayment= async ( req, res)=>{
           //Rollback everything if any operation fails
               await session.abortTransaction()
 
-               console.log('VERIFY PAYMENT ERROR:', error)
+           
 
                 res.status(500).json({
                 success: false,

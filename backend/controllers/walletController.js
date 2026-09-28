@@ -36,7 +36,7 @@ const getOwnerWallet = async (req, res) => {
 
   } catch (error) {
 
-    console.log('GET OWNER WALLET ERROR:', error)
+ 
 
     res.status(500).json({
       success: false,
@@ -82,7 +82,7 @@ const withdrawMoney = async (req, res) => {
       )
     }
 
-    console.log('STEP 1: Calling RazorpayX payout')
+   
 
     // Create payout using owner's fund account
     const payout = await createRazorpayXPayout(
@@ -90,7 +90,7 @@ const withdrawMoney = async (req, res) => {
       wallet.bankAccount.fundAccountId
     )
 
-    console.log('RAZORPAYX PAYOUT:', payout)
+   
 
     // Create withdrawal transaction with PROCESSING status
     await WalletTransaction.create(
@@ -123,22 +123,11 @@ const withdrawMoney = async (req, res) => {
 
   } catch (error) {
 
-    console.log(
-      'RAZORPAY ERROR DATA:',
-      error.response?.data
-    )
-
-    console.log(
-      'WITHDRAW MONEY ERROR:',
-      error.message
-    )
+   
 
     await session.abortTransaction()
 
-    console.log(
-      'WITHDRAW MONEY ERROR:',
-      error
-    )
+  
 
     res.status(500).json({
       success: false,
@@ -187,24 +176,17 @@ const razorpayXWebhook = async (req, res) => {
   try {
 
     console.log('RAZORPAYX WEBHOOK RECEIVED')
+  
 
     const webhookSignature =
       req.headers['x-razorpay-signature']
 
-    console.log(
-      'WEBHOOK SIGNATURE:',
-      webhookSignature
-    )
+   console.log('WEBHOOK SIGNATURE:', webhookSignature)
+    console.log('RAW BODY EXISTS:', !!req.rawBody)
+    console.log('RAW BODY LENGTH:', req.rawBody?.length)
+    console.log('RAW BODY HEX:', req.rawBody?.toString('hex'))
+    console.log('RAW BODY TEXT:', req.rawBody?.toString())
 
-    console.log(
-      'RAW BODY EXISTS:',
-      !!req.rawBody
-    )
-
-    console.log(
-      'WEBHOOK BODY:',
-      req.body
-    )
 
     // Verify webhook signature
     const expectedSignature = crypto
@@ -215,15 +197,15 @@ const razorpayXWebhook = async (req, res) => {
       .update(req.rawBody)
       .digest('hex')
 
-      console.log('EXPECTED SIGNATURE:', expectedSignature)
-console.log(
-  'SIGNATURE MATCH:',
-  webhookSignature === expectedSignature
-)
+       console.log('EXPECTED SIGNATURE:', expectedSignature)
+    console.log(
+      'SIGNATURE MATCH:',
+      webhookSignature === expectedSignature
+    )
 
     if (webhookSignature !== expectedSignature) {
 
-      console.log('INVALID WEBHOOK SIGNATURE')
+   
 
       return res.status(400).json({
         success: false,
@@ -231,84 +213,42 @@ console.log(
       })
     }
 
-    console.log('WEBHOOK SIGNATURE VERIFIED')
+
 
     const event = req.body.event
 
-    console.log(
-      'WEBHOOK EVENT:',
-      event
-    )
+ 
 
     const payout =
       req.body.payload?.payout?.entity
 
-    console.log(
-      'PAYOUT OBJECT:',
-      JSON.stringify(payout, null, 2)
-    )
+
 
     if (!payout) {
 
-      console.log(
-        'PAYOUT DATA NOT FOUND'
-      )
+
 
       return res.status(200).json({
         success: true
       })
     }
 
-    console.log(
-      'PAYOUT ID:',
-      payout.id
-    )
-
-    console.log(
-      'PAYOUT STATUS:',
-      payout.status
-    )
 
     const transaction =
       await WalletTransaction.findOne({
         razorpayPayoutId: payout.id
       })
 
-    console.log(
-      'SEARCHING TRANSACTION FOR PAYOUT ID:',
-      payout.id
-    )
-
-    console.log(
-      'TRANSACTION FOUND:',
-      transaction
-    )
 
     if (!transaction) {
 
-      console.log(
-        'Wallet transaction not found'
-      )
-
-      console.log(
-        'Searching payout ID:',
-        payout.id
-      )
-
+  
       return res.status(200).json({
         success: true
       })
     }
 
-    console.log(
-      'TRANSACTION FOUND:',
-      transaction._id
-    )
-
-    console.log(
-      'TRANSACTION STATUS:',
-      transaction.payoutStatus
-    )
+   
 
 
     // -----------------------------------
@@ -317,18 +257,13 @@ console.log(
 
     if (event === 'payout.processed') {
 
-      console.log(
-        'PAYOUT PROCESSED EVENT RECEIVED'
-      )
-
+     
       // Already processed
       if (
         transaction.payoutStatus === 'SUCCESS'
       ) {
 
-        console.log(
-          'Payout already processed'
-        )
+      
 
         return res.status(200).json({
           success: true
@@ -353,10 +288,7 @@ console.log(
           )
         }
 
-        console.log(
-          'WALLET BALANCE BEFORE DEDUCTION:',
-          wallet.balance
-        )
+   
 
         // Deduct amount only after
         // RazorpayX processed the payout
@@ -378,22 +310,10 @@ console.log(
 
         await session.commitTransaction()
 
-        console.log(
-          'Wallet balance deducted successfully'
-        )
-
-        console.log(
-          'Wallet transaction updated to SUCCESS'
-        )
-
+      
       } catch (error) {
 
         await session.abortTransaction()
-
-        console.log(
-          'PROCESSED WEBHOOK TRANSACTION ERROR:',
-          error
-        )
 
         throw error
 
@@ -412,14 +332,7 @@ console.log(
       event === 'payout.rejected'
     ) {
 
-      console.log(
-        'PAYOUT REJECTED EVENT RECEIVED'
-      )
-
-      console.log(
-        'TRANSACTION STATUS BEFORE REJECT:',
-        transaction.payoutStatus
-      )
+ 
 
       // Already finalized
       if (
@@ -427,9 +340,7 @@ console.log(
         transaction.payoutStatus === 'SUCCESS'
       ) {
 
-        console.log(
-          'Payout already finalized'
-        )
+       
 
         return res.status(200).json({
           success: true
@@ -441,9 +352,7 @@ console.log(
 
       await transaction.save()
 
-      console.log(
-        'Wallet transaction updated to FAILED'
-      )
+
     }
 
 
@@ -455,33 +364,14 @@ console.log(
       event === 'payout.reversed'
     ) {
 
-      console.log(
-        'PAYOUT REVERSED EVENT RECEIVED'
-      )
-
-      console.log(
-        'TRANSACTION STATUS BEFORE REVERSE:',
-        transaction.payoutStatus
-      )
-
-      console.log(
-        'TRANSACTION ID:',
-        transaction._id
-      )
-
-      console.log(
-        'PAYOUT ID:',
-        payout.id
-      )
+     
 
       // Already reversed
       if (
         transaction.payoutStatus === 'FAILED'
       ) {
 
-        console.log(
-          'Payout already reversed/failed'
-        )
+      
 
         return res.status(200).json({
           success: true
@@ -506,10 +396,7 @@ console.log(
           )
         }
 
-        console.log(
-          'WALLET BALANCE BEFORE REVERSE:',
-          wallet.balance
-        )
+       
 
         /*
           If the payout was already processed,
@@ -523,14 +410,7 @@ console.log(
           transaction.payoutStatus === 'SUCCESS'
         ) {
 
-          console.log(
-            'REVERSING SUCCESSFUL PAYOUT'
-          )
-
-          console.log(
-            'ADDING BACK AMOUNT:',
-            transaction.amount
-          )
+     
 
           wallet.balance +=
             transaction.amount
@@ -542,18 +422,13 @@ console.log(
           transaction.balanceAfter =
             wallet.balance
 
-          console.log(
-            'WALLET BALANCE AFTER REVERSE:',
-            wallet.balance
-          )
+         
         }
 
         transaction.payoutStatus =
           'FAILED'
 
-        console.log(
-          'SETTING TRANSACTION STATUS TO FAILED'
-        )
+        
 
         await transaction.save({
           session
@@ -561,22 +436,13 @@ console.log(
 
         await session.commitTransaction()
 
-        console.log(
-          'Reversed payout amount returned to wallet'
-        )
-
-        console.log(
-          'Wallet transaction updated to FAILED'
-        )
+     
 
       } catch (error) {
 
         await session.abortTransaction()
 
-        console.log(
-          'REVERSED WEBHOOK TRANSACTION ERROR:',
-          error
-        )
+        
 
         throw error
 
@@ -593,10 +459,7 @@ console.log(
 
   } catch (error) {
 
-    console.log(
-      'WEBHOOK ERROR:',
-      error.message
-    )
+ 
 
     return res.status(500).json({
       success: false,
@@ -737,10 +600,7 @@ const addBankAccount = async (req, res) => {
 
   } catch (error) {
 
-    console.log(
-      'ADD BANK ACCOUNT ERROR:',
-      error.response?.data || error.message
-    )
+  
 
     res.status(500).json({
       success: false,
