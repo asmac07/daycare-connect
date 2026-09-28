@@ -764,6 +764,15 @@ const renewEnrollment = async (req, res) => {
     const enrollmentEndDate = new Date(oldEnrollment.endDate)
     enrollmentEndDate.setHours(0, 0, 0, 0)
 
+
+    console.log('RENEWAL DATE DEBUG:', {
+  enrollmentStatus: oldEnrollment.enrollmentStatus,
+  rawEndDate: oldEnrollment.endDate,
+  endDate: enrollmentEndDate,
+  today: today,
+  isExpired: enrollmentEndDate < today
+})
+
     if (enrollmentEndDate >= today) {
       return res.status(400).json({
         success: false,
