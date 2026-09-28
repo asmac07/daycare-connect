@@ -215,6 +215,12 @@ const razorpayXWebhook = async (req, res) => {
       .update(req.rawBody)
       .digest('hex')
 
+      console.log('EXPECTED SIGNATURE:', expectedSignature)
+console.log(
+  'SIGNATURE MATCH:',
+  webhookSignature === expectedSignature
+)
+
     if (webhookSignature !== expectedSignature) {
 
       console.log('INVALID WEBHOOK SIGNATURE')
