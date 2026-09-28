@@ -5,10 +5,13 @@ const Enrollment = require('../models/Enrollment')
 const expireEnrollments = () => {
   cron.schedule('0 0 * * *', async () => {
     try {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
       const result = await Enrollment.updateMany(
         {
           enrollmentStatus: 'confirmed',
-          endDate: { $lt: new Date() }
+          endDate: { $lt: today }
         },
         {
           $set: {
@@ -25,3 +28,4 @@ const expireEnrollments = () => {
 }
 
 module.exports = expireEnrollments
+
