@@ -21,10 +21,28 @@ const getOwnerWallet = async (req, res) => {
 
     // Find owner's transaction history
     const transactions = await WalletTransaction.find({
-      owner: req.user.id
-    })
-      .sort({ createdAt: -1 })
-
+  owner: req.user.id
+})
+  .populate({
+    path: 'referenceId',
+    model: 'Payment',
+    populate: [
+      {
+        path: 'parent',
+        select: 'name email phone'
+      },
+      {
+        path: 'enrollment',
+        select: 'child',
+        populate: {
+          path: 'child',
+          select: 'name'
+        }
+      }
+    ]
+  })
+  .sort({ createdAt: -1 })
+  
     res.status(200).json({
       success: true,
       data: {
@@ -181,13 +199,6 @@ const razorpayXWebhook = async (req, res) => {
     const webhookSignature =
       req.headers['x-razorpay-signature']
 
-   console.log('WEBHOOK SIGNATURE:', webhookSignature)
-    console.log('RAW BODY EXISTS:', !!req.rawBody)
-    console.log('RAW BODY LENGTH:', req.rawBody?.length)
-    console.log('RAW BODY HEX:', req.rawBody?.toString('hex'))
-    console.log('RAW BODY TEXT:', req.rawBody?.toString())
-
-
     // Verify webhook signature
     const expectedSignature = crypto
       .createHmac(
@@ -198,18 +209,11 @@ const razorpayXWebhook = async (req, res) => {
       .digest('hex')
 
       const expectedSignatureUtf8 = crypto
-  .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
-  .update(req.rawBody.toString('utf8'), 'utf8')
-  .digest('hex')
+        .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
+        .update(req.rawBody.toString('utf8'), 'utf8')
+        .digest('hex')
 
-console.log('EXPECTED SIGNATURE UTF8:', expectedSignatureUtf8)
-
-       console.log('EXPECTED SIGNATURE:', expectedSignature)
-    console.log(
-      'SIGNATURE MATCH:',
-      webhookSignature === expectedSignature
-    )
-
+c
     if (webhookSignature !== expectedSignature) {
 
    
@@ -258,9 +262,6 @@ console.log('EXPECTED SIGNATURE UTF8:', expectedSignatureUtf8)
    
 
 
-    // -----------------------------------
-    // 1. PAYOUT PROCESSED
-    // -----------------------------------
 
     if (event === 'payout.processed') {
 
@@ -331,9 +332,7 @@ console.log('EXPECTED SIGNATURE UTF8:', expectedSignatureUtf8)
     }
 
 
-    // -----------------------------------
-    // 2. PAYOUT REJECTED
-    // -----------------------------------
+    
 
     else if (
       event === 'payout.rejected'
@@ -363,10 +362,7 @@ console.log('EXPECTED SIGNATURE UTF8:', expectedSignatureUtf8)
     }
 
 
-    // -----------------------------------
-    // 3. PAYOUT REVERSED
-    // -----------------------------------
-
+    
     else if (
       event === 'payout.reversed'
     ) {

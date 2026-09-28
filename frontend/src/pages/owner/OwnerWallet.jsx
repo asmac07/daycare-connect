@@ -1,5 +1,4 @@
 
-
 import { useEffect, useState } from 'react'
 import {
   Wallet,
@@ -332,13 +331,11 @@ const OwnerWallet = () => {
             onClick={() => setShowWithdrawModal(true)}
             className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white text-dc-blue font-semibold text-sm shadow-md hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-
             <ArrowUpFromLine size={18} />
 
             {bankAccount
               ? 'Withdraw Money'
               : 'Add Bank Account First'}
-
           </button>
 
         </div>
@@ -513,10 +510,8 @@ const OwnerWallet = () => {
             </div>
 
             <div className="text-xs text-dc-muted">
-
               {transactions.length} transaction
               {transactions.length !== 1 ? 's' : ''}
-
             </div>
 
           </div>
@@ -595,6 +590,17 @@ const OwnerWallet = () => {
                   const isWithdrawal =
                     transaction.reason === 'WITHDRAWAL'
 
+                  const isEnrollmentPayment =
+                    transaction.reason === 'ENROLLMENT_PAYMENT'
+
+                  const payment = isEnrollmentPayment
+                    ? transaction.referenceId
+                    : null
+
+                  const parent = payment?.parent
+                  const child =
+                    payment?.enrollment?.child
+
                   const payoutStatus = isWithdrawal
                     ? getPayoutStatus(
                         transaction.payoutStatus
@@ -614,10 +620,10 @@ const OwnerWallet = () => {
                       {/* Transaction */}
                       <td className="px-6 py-4">
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
 
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                               isCredit
                                 ? 'bg-green-50 text-green-600'
                                 : 'bg-red-50 text-red-500'
@@ -650,13 +656,43 @@ const OwnerWallet = () => {
 
                             </p>
 
-                            <p className="text-xs text-dc-muted mt-0.5">
+                            {isEnrollmentPayment ? (
 
-                              {isWithdrawal
-                                ? 'RazorpayX payout'
-                                : 'Wallet transaction'}
+                              <div className="mt-1.5 space-y-0.5">
 
-                            </p>
+                                <p className="text-xs text-dc-ink">
+                                  <span className="font-semibold">
+                                    Parent:
+                                  </span>{' '}
+                                  {parent?.name || 'Parent'}
+                                </p>
+
+                                <p className="text-xs text-dc-muted">
+                                  <span className="font-semibold">
+                                    Child:
+                                  </span>{' '}
+                                  {child?.name || 'Child'}
+                                </p>
+
+                                {parent?.email && (
+                                  <p className="text-xs text-dc-muted">
+                                    {parent.email}
+                                  </p>
+                                )}
+
+                              </div>
+
+                            ) : (
+
+                              <p className="text-xs text-dc-muted mt-0.5">
+
+                                {isWithdrawal
+                                  ? 'RazorpayX payout'
+                                  : 'Wallet transaction'}
+
+                              </p>
+
+                            )}
 
                           </div>
 
@@ -1159,4 +1195,3 @@ const OwnerWallet = () => {
 }
 
 export default OwnerWallet
-
