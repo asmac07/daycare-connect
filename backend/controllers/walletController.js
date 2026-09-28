@@ -197,6 +197,13 @@ const razorpayXWebhook = async (req, res) => {
       .update(req.rawBody)
       .digest('hex')
 
+      const expectedSignatureUtf8 = crypto
+  .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
+  .update(req.rawBody.toString('utf8'), 'utf8')
+  .digest('hex')
+
+console.log('EXPECTED SIGNATURE UTF8:', expectedSignatureUtf8)
+
        console.log('EXPECTED SIGNATURE:', expectedSignature)
     console.log(
       'SIGNATURE MATCH:',
