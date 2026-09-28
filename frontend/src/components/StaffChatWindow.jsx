@@ -47,7 +47,8 @@ const StaffChatWindow = ({
   const [callType, setCallType] = useState(null)
   const [incomingCall, setIncomingCall] = useState(null)
   const [callActive, setCallActive] = useState(false)
-  const [callEndedMessage, setCallEndedMessage] = useState('')
+  const [showCallEndedModal, setShowCallEndedModal] =
+    useState(false)
 
   const [isMuted, setIsMuted] = useState(false)
   const [isCameraOn, setIsCameraOn] = useState(true)
@@ -948,9 +949,7 @@ const StaffChatWindow = ({
 
       endCall(false)
 
-      setCallEndedMessage(
-        'The other user has ended the call.'
-      )
+      setShowCallEndedModal(true)
     }
 
     const handleCallRejected = () => {
@@ -1283,14 +1282,6 @@ const StaffChatWindow = ({
         })}
 
         <div ref={messagesEndRef} />
-
-        {callEndedMessage && (
-
-          <div className="text-center text-sm text-gray-500 py-2">
-            {callEndedMessage}
-          </div>
-
-        )}
 
       </div>
 
@@ -1762,9 +1753,50 @@ const StaffChatWindow = ({
 
       )}
 
+      {/* CALL ENDED MODAL */}
+
+      {showCallEndedModal && (
+
+        <div className="absolute inset-0 z-[60] bg-dc-ink/50 backdrop-blur-sm flex items-center justify-center rounded-[2rem]">
+
+          <div className="bg-white rounded-3xl p-6 w-80 text-center shadow-[0_20px_50px_-12px_rgba(74,144,164,0.4)]">
+
+            <div className="w-14 h-14 rounded-full bg-dc-mist flex items-center justify-center mx-auto mb-4">
+
+              <PhoneOff
+                size={24}
+                strokeWidth={2.2}
+                className="text-dc-blue"
+              />
+
+            </div>
+
+            <h3 className="font-semibold font-baloo text-lg text-dc-ink">
+              Call Ended
+            </h3>
+
+            <p className="text-sm text-dc-muted mt-1">
+              {otherUserName} ended the call.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowCallEndedModal(false)
+              }
+              className="w-full mt-6 py-2.5 rounded-full bg-gradient-to-br from-dc-blue to-dc-green text-white font-semibold text-sm hover:opacity-90 transition"
+            >
+              OK
+            </button>
+
+          </div>
+
+        </div>
+
+      )}
+
     </div>
   )
 }
 
 export default StaffChatWindow
-

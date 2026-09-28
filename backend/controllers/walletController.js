@@ -153,10 +153,7 @@ const withdrawMoney = async (req, res) => {
 }
 
 
-const createRazorpayXPayout = async (
-  amount,
-  fundAccountId
-) => {
+const createRazorpayXPayout = async ( amount, fundAccountId ) => {
 
   const response = await axios.post(
     'https://api.razorpay.com/v1/payouts',
@@ -168,7 +165,7 @@ const createRazorpayXPayout = async (
 
       amount: Number(amount) * 100,
       currency: 'INR',
-      mode: 'UPI',
+      mode: 'IMPS',
       purpose: 'payout',
       queue_if_low_balance: true,
       reference_id: `WITHDRAW_${Date.now()}`,
