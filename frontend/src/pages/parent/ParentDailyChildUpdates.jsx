@@ -1,8 +1,7 @@
-
-
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axiosInstance from '../../api/axiosInstance'
+
 import {
   Search,
   ClipboardCheck,
@@ -48,28 +47,11 @@ const ParentDailyChildUpdates = () => {
     fetchUpdates()
   }, [])
 
-  // Keep only the latest update for each child
-  const latestUpdatesByChild = Object.values(
-    updates.reduce((acc, update) => {
-      const childId = update.child?._id
-
-      if (!childId) {
-        return acc
-      }
-
-      if (
-        !acc[childId] ||
-        new Date(update.date) >
-          new Date(acc[childId].date)
-      ) {
-        acc[childId] = update
-      }
-
-      return acc
-    }, {})
-  )
-
-  const filteredUpdates = latestUpdatesByChild.filter(
+  /*
+   * Backend already returns one record per child.
+   * So we don't need to group/filter latest updates here.
+   */
+  const filteredUpdates = updates.filter(
     (update) =>
       update.child?.name
         ?.toLowerCase()
@@ -129,8 +111,7 @@ const ParentDailyChildUpdates = () => {
     navigate('/parent/enrollments', {
       state: {
         childId: update.child?._id,
-        enrollmentId: update.enrollment?._id,
-        openRenewal: true
+        enrollmentId: update.enrollment?._id
       }
     })
   }
@@ -251,9 +232,19 @@ const ParentDailyChildUpdates = () => {
           const isExpired =
             update.enrollment?.enrollmentStatus === 'expired'
 
+          /*
+           * If date exists, an actual daily care update exists.
+           * If date is null, the child is active but
+           * staff has not submitted today's update yet.
+           */
+          const hasDailyUpdate = Boolean(update.date)
+
           return (
             <div
-              key={update.child?._id}
+              key={
+                update.enrollment?._id ||
+                update.child?._id
+              }
               className="bg-white/90 rounded-[1.5rem] p-5 border border-white/60 shadow-[0_15px_40px_-15px_rgba(74,144,164,0.2)] hover:shadow-[0_15px_40px_-15px_rgba(74,144,164,0.35)] transition"
             >
 
@@ -281,9 +272,11 @@ const ParentDailyChildUpdates = () => {
                         strokeWidth={2.4}
                       />
 
-                      {new Date(
-                        update.date
-                      ).toLocaleDateString()}
+                      {update.date
+                        ? new Date(
+                            update.date
+                          ).toLocaleDateString()
+                        : 'No update yet'}
 
                     </p>
 
@@ -337,90 +330,109 @@ const ParentDailyChildUpdates = () => {
                 </div>
               )}
 
-              {/* Latest Update */}
-              <div className="mb-3">
-                <p className="text-xs font-semibold text-dc-ink">
-                  Latest Update
-                </p>
-              </div>
+              {/* No Update Yet */}
+              {!hasDailyUpdate && !isExpired && (
+                <div className="bg-dc-mist rounded-2xl p-4 mb-4">
 
-              {/* Care Details */}
-              <div className="space-y-2">
-
-                {careFields.map(
-                  ({ key, label, icon: Icon }) => {
-                    const value = update[key]
-
-                    return (
-                      <div
-                        key={key}
-                        className="flex items-center justify-between text-sm"
-                      >
-
-                        <span className="flex items-center gap-1.5 text-dc-muted">
-
-                          <Icon
-                            size={13}
-                            strokeWidth={2.3}
-                            className="text-dc-blue"
-                          />
-
-                          {label}
-
-                        </span>
-
-                        <span
-                          className={
-                            isPositive(value)
-                              ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-dc-green/15 text-dc-green'
-                              : 'text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-600'
-                          }
-                        >
-                          {value}
-                        </span>
-
-                      </div>
-                    )
-                  }
-                )}
-
-              </div>
-
-              {/* Updated By */}
-              <div className="border-t border-dc-border mt-4 pt-3 flex items-center gap-2">
-
-                <div className="w-7 h-7 rounded-full bg-dc-mist flex items-center justify-center flex-shrink-0">
-
-                  <User
-                    size={13}
-                    strokeWidth={2.3}
-                    className="text-dc-blue"
-                  />
-
-                </div>
-
-                <div>
-
-                  <p className="text-xs text-dc-muted leading-tight">
-                    Updated by
+                  <p className="text-sm text-dc-ink font-semibold">
+                    No daily update yet.
                   </p>
 
-                  <p className="text-sm font-semibold text-dc-ink leading-tight">
+                  <p className="text-xs text-dc-muted mt-1">
+                    Today's care update has not been added yet.
+                  </p>
 
-                    {update.staff?.name || 'Staff'}
+                </div>
+              )}
 
-                    {update.staff?.designation && (
-                      <span className="text-xs text-dc-muted font-normal">
-                        {' · '}
-                        {update.staff.designation}
-                      </span>
+              {/* Latest Update */}
+              {hasDailyUpdate && (
+                <>
+                  <div className="mb-3">
+                    <p className="text-xs font-semibold text-dc-ink">
+                      Latest Update
+                    </p>
+                  </div>
+
+                  {/* Care Details */}
+                  <div className="space-y-2">
+
+                    {careFields.map(
+                      ({ key, label, icon: Icon }) => {
+                        const value = update[key]
+
+                        return (
+                          <div
+                            key={key}
+                            className="flex items-center justify-between text-sm"
+                          >
+
+                            <span className="flex items-center gap-1.5 text-dc-muted">
+
+                              <Icon
+                                size={13}
+                                strokeWidth={2.3}
+                                className="text-dc-blue"
+                              />
+
+                              {label}
+
+                            </span>
+
+                            <span
+                              className={
+                                isPositive(value)
+                                  ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-dc-green/15 text-dc-green'
+                                  : 'text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-600'
+                              }
+                            >
+                              {value}
+                            </span>
+
+                          </div>
+                        )
+                      }
                     )}
 
-                  </p>
+                  </div>
 
-                </div>
+                  {/* Updated By */}
+                  <div className="border-t border-dc-border mt-4 pt-3 flex items-center gap-2">
 
-              </div>
+                    <div className="w-7 h-7 rounded-full bg-dc-mist flex items-center justify-center flex-shrink-0">
+
+                      <User
+                        size={13}
+                        strokeWidth={2.3}
+                        className="text-dc-blue"
+                      />
+
+                    </div>
+
+                    <div>
+
+                      <p className="text-xs text-dc-muted leading-tight">
+                        Updated by
+                      </p>
+
+                      <p className="text-sm font-semibold text-dc-ink leading-tight">
+
+                        {update.staff?.name || 'Staff'}
+
+                        {update.staff?.designation && (
+                          <span className="text-xs text-dc-muted font-normal">
+                            {' · '}
+                            {update.staff.designation}
+                          </span>
+                        )}
+
+                      </p>
+
+                    </div>
+
+                  </div>
+                </>
+              )}
 
             </div>
           )
@@ -466,4 +478,3 @@ const ParentDailyChildUpdates = () => {
 }
 
 export default ParentDailyChildUpdates
-

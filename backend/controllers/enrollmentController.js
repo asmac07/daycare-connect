@@ -441,13 +441,47 @@ const deleteEnrollment = async (req, res) => {
 
 
 // // parent
+
 const getMyEnrollments = async (req, res) => {
   try {
     const pageNumber = Number(req.query.page) || 1
     const limitNumber = Number(req.query.limit) || 6
-    const skip = (pageNumber - 1) * limitNumber
+    const enrollmentId = req.query.enrollmentId
 
     console.log('Parent ID:', req.user.id)
+
+    // Exact enrollment requested
+    if (enrollmentId) {
+      const enrollment = await Enrollment.findOne({
+        _id: enrollmentId,
+        parent: req.user.id
+      })
+        .populate('child')
+        .populate('assignedStaff', 'name email designation')
+        .populate({
+          path: 'daycare',
+          select: 'name owner',
+          populate: {
+            path: 'owner',
+            select: 'name email'
+          }
+        })
+
+      if (!enrollment) {
+        return res.status(404).json({
+          success: false,
+          message: 'Enrollment not found'
+        })
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: [enrollment]
+      })
+    }
+
+    // Normal paginated enrollments
+    const skip = (pageNumber - 1) * limitNumber
 
     const totalEnrollments = await Enrollment.countDocuments({
       parent: req.user.id
@@ -672,6 +706,9 @@ const renewEnrollment = async (req, res) => {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({
         success: false,
@@ -699,7 +736,7 @@ const renewEnrollment = async (req, res) => {
           }
 
           expectedEnd.setHours(0, 0, 0, 0)
-          end.setHours(0, 0, 0, 0)
+          
 
           if (expectedEnd.getTime() !== end.getTime()) {
             return res.status(400).json({
@@ -818,7 +855,7 @@ const renewEnrollment = async (req, res) => {
       enrollmentStatus: ENROLLMENT_STATUS.APPROVED,
       paymentStatus: 'pending',
 
-      assignedStaff: null,
+      assignedStaff:  null,
       isRenewal: true
     })
 

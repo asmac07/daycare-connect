@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import axiosInstance from '../../api/axiosInstance'
 import { toast } from 'react-toastify'
+import { useLocation } from 'react-router-dom'
 import { statusStyles } from '../../constants/statusStyles'
 import {
   ClipboardList,
@@ -24,6 +25,8 @@ import {
 
 const ParentEnrollments = () => {
 
+   const location = useLocation()
+
   const [enrollments, setEnrollments] = useState([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -42,27 +45,59 @@ const ParentEnrollments = () => {
   const [renewStartDate, setRenewStartDate] = useState('')
   const [renewEndDate, setRenewEndDate] = useState('')
 
-  const fetchMyEnrollments = async () => {
-    try {
-      const response = await axiosInstance.get(
-        `/enrollment/getMyEnrollments?page=${page}&limit=${limit}`
-      )
+  const fetchMyEnrollments = async (enrollmentId = null) => {
+  try {
+    let url = `/enrollment/getMyEnrollments?page=${page}&limit=${limit}`
 
-      setEnrollments(response.data.data)
-      setTotalPages(response.data.totalPages)
-
-    } catch (error) {
-      console.log(error)
-      toast.error(
-        error.response?.data?.message ||
-        'Failed to load enrollments'
-      )
+    if (enrollmentId) {
+      url += `&enrollmentId=${enrollmentId}`
     }
-  }
 
+    const response = await axiosInstance.get(url)
+
+    const data = response.data.data || []
+
+    setEnrollments(data)
+
+    if (!enrollmentId) {
+      setTotalPages(response.data.totalPages || 1)
+    }
+
+    return data
+  } catch (error) {
+    console.log(error)
+
+    toast.error(
+      error.response?.data?.message ||
+      'Failed to load enrollments'
+    )
+
+    return []
+  }
+}
   useEffect(() => {
-    fetchMyEnrollments()
-  }, [page])
+        const targetEnrollmentId = location.state?.enrollmentId
+
+        const loadEnrollments = async () => {
+          if (targetEnrollmentId) {
+            const data = await fetchMyEnrollments(targetEnrollmentId)
+
+            if (data.length > 0) {
+              setSelectedEnrollment(data[0])
+            }
+
+            //  clearing the state,modal donot open automatically when refresh the page
+            
+            window.history.replaceState({}, document.title)
+            return
+          }
+
+          fetchMyEnrollments()
+        }
+
+        loadEnrollments()
+      }, [page, location.state?.enrollmentId])
+      
 
   const isEnrollmentExpired = (endDate) => {
     if (!endDate) return false

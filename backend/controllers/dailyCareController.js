@@ -8,6 +8,24 @@ const getDailyCareChildren = async (req, res) => {
 
     today.setHours(0, 0, 0, 0)
 
+    console.log('TODAY:', today)
+
+const allAssigned = await Enrollment.find({
+  assignedStaff: req.user.id
+})
+
+console.log(
+  'ALL ASSIGNED ENROLLMENTS:',
+  allAssigned.map((enrollment) => ({
+    id: enrollment._id,
+    child: enrollment.child,
+    status: enrollment.enrollmentStatus,
+    startDate: enrollment.startDate,
+    endDate: enrollment.endDate,
+    assignedStaff: enrollment.assignedStaff
+  }))
+)
+
     const enrollments = await Enrollment.find({
       assignedStaff: req.user.id,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
@@ -163,9 +181,17 @@ const saveDailyCareUpdate = async (req, res) => {
 
 const getParentDailyCareUpdates = async (req, res) => {
   try {
+    const today = new Date()
+
+    today.setHours(0, 0, 0, 0)
+
     const enrollments = await Enrollment.find({
       parent: req.user.id
-    }).select('_id')
+    })
+      .populate('child', 'name dateOfBirth gender')
+      .populate('assignedStaff', 'name designation')
+      .populate('daycare', 'name')
+      .sort({ createdAt: -1 })
 
     const enrollmentIds = enrollments.map(
       (enrollment) => enrollment._id
@@ -177,16 +203,119 @@ const getParentDailyCareUpdates = async (req, res) => {
       .populate('child', 'name dateOfBirth gender')
       .populate('staff', 'name designation')
       .populate('daycare', 'name')
-      .populate('enrollment', 'enrollmentStatus startDate endDate')
+      .populate(
+        'enrollment',
+        'enrollmentStatus startDate endDate'
+      )
       .sort({ date: -1 })
+
+    // Latest daily update for each enrollment
+    const latestUpdateByEnrollment = new Map()
+
+    updates.forEach((update) => {
+      const enrollmentId = update.enrollment?._id?.toString()
+
+      if (!enrollmentId) return
+
+      if (
+        !latestUpdateByEnrollment.has(enrollmentId) ||
+        new Date(update.date) >
+          new Date(
+            latestUpdateByEnrollment.get(enrollmentId).date
+          )
+      ) {
+        latestUpdateByEnrollment.set(enrollmentId, update)
+      }
+    })
+
+    // Group enrollments by child
+    const enrollmentsByChild = new Map()
+
+    enrollments.forEach((enrollment) => {
+      const childId = enrollment.child?._id?.toString()
+
+      if (!childId) return
+
+      if (!enrollmentsByChild.has(childId)) {
+        enrollmentsByChild.set(childId, [])
+      }
+
+      enrollmentsByChild.get(childId).push(enrollment)
+    })
+
+    const data = []
+
+    enrollmentsByChild.forEach((childEnrollments) => {
+      // Find currently active enrollment
+      const activeEnrollment = childEnrollments.find(
+        (enrollment) => {
+          if (
+            enrollment.enrollmentStatus !== 'confirmed' ||
+            !enrollment.startDate ||
+            !enrollment.endDate
+          ) {
+            return false
+          }
+
+          const startDate = new Date(enrollment.startDate)
+          const endDate = new Date(enrollment.endDate)
+
+          startDate.setHours(0, 0, 0, 0)
+          endDate.setHours(0, 0, 0, 0)
+
+          return today >= startDate && today <= endDate
+        }
+      )
+
+      // Active enrollment gets priority
+      const selectedEnrollment =
+        activeEnrollment || childEnrollments[0]
+
+      if (!selectedEnrollment) return
+
+      const enrollmentId =
+        selectedEnrollment._id.toString()
+
+      const latestUpdate =
+        latestUpdateByEnrollment.get(enrollmentId)
+
+      // If active enrollment has no daily update yet,
+      // still return the child with dailyCareUpdate = null
+      if (latestUpdate) {
+        data.push(latestUpdate)
+      } else {
+        data.push({
+          _id: `enrollment-${enrollmentId}`,
+          child: selectedEnrollment.child,
+          daycare: selectedEnrollment.daycare,
+          staff: selectedEnrollment.assignedStaff,
+          enrollment: {
+            _id: selectedEnrollment._id,
+            enrollmentStatus:
+              selectedEnrollment.enrollmentStatus,
+            startDate: selectedEnrollment.startDate,
+            endDate: selectedEnrollment.endDate
+          },
+          date: null,
+          attendance: null,
+          breakfast: null,
+          lunch: null,
+          nap: null,
+          activity: null
+        })
+      }
+    })
 
     res.status(200).json({
       success: true,
-      data: updates
+      data
     })
 
   } catch (error) {
-    console.log('GET PARENT DAILY CARE UPDATES ERROR:', error)
+    console.log(
+      'GET PARENT DAILY CARE UPDATES ERROR:',
+      error
+    )
 
     res.status(500).json({
       success: false,
@@ -194,7 +323,6 @@ const getParentDailyCareUpdates = async (req, res) => {
     })
   }
 }
-
 module.exports = {
   getDailyCareChildren,
   saveDailyCareUpdate,
