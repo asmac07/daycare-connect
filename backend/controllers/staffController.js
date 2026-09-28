@@ -177,27 +177,41 @@ const toggleStaffStatus = async (req, res) => {
   }
 }
 
+
 const getAssignedChildren = async (req, res) => {
   try {
     const page = Number(req.query.page) || 1
     const limit = Number(req.query.limit) || 6
     const skip = (page - 1) * limit
 
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
     const filter = {
       assignedStaff: req.user.id,
-      enrollmentStatus: {
-        $in: [
-          ENROLLMENT_STATUS.CONFIRMED,
-          ENROLLMENT_STATUS.EXPIRED
-        ]
+      enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
+      startDate: {
+        $lte: today
+      },
+      endDate: {
+        $gte: today
       }
     }
 
     const [enrollments, total] = await Promise.all([
       Enrollment.find(filter)
-        .populate('child', 'name dateOfBirth gender medicalNotes')
-        .populate('parent', 'name email phone')
-        .populate('daycare', 'name address')
+        .populate(
+          'child',
+          'name dateOfBirth gender medicalNotes'
+        )
+        .populate(
+          'parent',
+          'name email phone'
+        )
+        .populate(
+          'daycare',
+          'name address'
+        )
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -226,9 +240,11 @@ const getAssignedChildren = async (req, res) => {
         limit
       }
     })
-
   } catch (error) {
-    console.log('GET ASSIGNED CHILDREN ERROR:', error)
+    console.log(
+      'GET ASSIGNED CHILDREN ERROR:',
+      error
+    )
 
     res.status(500).json({
       success: false,
@@ -236,6 +252,8 @@ const getAssignedChildren = async (req, res) => {
     })
   }
 }
+
+
 
 
 const getAssignedParents = async (req, res) => {
