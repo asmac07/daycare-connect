@@ -8,6 +8,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { toast } from 'react-toastify'
 import { isValidEmail } from '../../utils/validators'
 import { getDashboardRoute } from '../../constants'
+import socket from '../../socket/socket'
 
 const Login = () => {
   const [email, setEmail] = useState('')
@@ -60,6 +61,12 @@ const Login = () => {
         email: email.trim(),
         password,
       })
+        
+            socket.auth = {
+        token: response.data.accessToken
+      }
+
+      socket.connect()
 
       dispatch(loginSuccess({
         user: response.data.data,
@@ -191,6 +198,12 @@ const Login = () => {
                   })
                   return
                 }
+
+             socket.auth = {
+                  token: response.data.accessToken
+                }
+
+                socket.connect()
 
                 dispatch(loginSuccess({
                   user: response.data.data,

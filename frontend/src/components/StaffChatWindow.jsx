@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react'
-import { io } from 'socket.io-client'
 import axiosInstance from '../api/axiosInstance'
 import { useSelector } from 'react-redux'
+import socket from '../socket/socket'
 import {
   Baby,
   School,
@@ -20,20 +20,6 @@ import {
   Music,
   File
 } from 'lucide-react'
-
-const socket = io(import.meta.env.VITE_SOCKET_URL, {
-  auth: {
-    token: localStorage.getItem('token')
-  }
-})
-
-socket.on('connect', () => {
-  console.log('Socket connected:', socket.id)
-})
-
-socket.on('connect_error', (error) => {
-  console.error('Socket connection error:', error.message)
-})
 
 const StaffChatWindow = ({
   daycareId,
@@ -85,7 +71,8 @@ const StaffChatWindow = ({
   const docInputRef = useRef(null)
   const menuRef = useRef(null)
 
-  const roomId = `staff_${daycareId}_${parentId}_${staffId}_${childId}`
+  const roomId =
+    `staff_${daycareId}_${parentId}_${staffId}_${childId}`
 
   const otherUserId =
     String(user.id) === String(parentId)
@@ -100,7 +87,9 @@ const StaffChatWindow = ({
     socket.emit('userOnline')
 
     axiosInstance
-      .get(`/staff-messages/${daycareId}/${parentId}/${staffId}/${childId}`)
+      .get(
+        `/staff-messages/${daycareId}/${parentId}/${staffId}/${childId}`
+      )
       .then((res) => {
         setMessages(res.data.data)
       })
@@ -114,7 +103,7 @@ const StaffChatWindow = ({
       socket.emit('checkUserStatus', otherUserId)
     }
 
-    socket.on('newStaffMessage', (message) => {
+    const handleNewStaffMessage = (message) => {
       const messageDaycareId = String(message.daycare)
       const messageParentId = String(message.parent)
       const messageStaffId = String(message.staff)
@@ -128,42 +117,95 @@ const StaffChatWindow = ({
       ) {
         setMessages((prev) => [...prev, message])
       }
-    })
+    }
 
-    socket.on('userStatus', (data) => {
-      if (String(data.userId) === String(otherUserId)) {
+    const handleUserStatus = (data) => {
+      if (
+        String(data.userId) === String(otherUserId)
+      ) {
         setOnline(data.status === 'online')
       }
-    })
+    }
 
-    socket.on('staffMessageRead', (data) => {
+    const handleStaffMessageRead = (data) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          String(msg._id) === String(data.messageId)
+          String(msg._id) ===
+          String(data.messageId)
             ? { ...msg, read: true }
             : msg
         )
       )
-    })
+    }
 
-    socket.on('staffUserTyping', (data) => {
-      if (String(data.userId) === String(otherUserId)) {
+    const handleStaffUserTyping = (data) => {
+      if (
+        String(data.userId) ===
+        String(otherUserId)
+      ) {
         setTyping(true)
       }
-    })
+    }
 
-    socket.on('staffUserStoppedTyping', (data) => {
-      if (String(data.userId) === String(otherUserId)) {
+    const handleStaffUserStoppedTyping = (data) => {
+      if (
+        String(data.userId) ===
+        String(otherUserId)
+      ) {
         setTyping(false)
       }
-    })
+    }
+
+    socket.on(
+      'newStaffMessage',
+      handleNewStaffMessage
+    )
+
+    socket.on(
+      'userStatus',
+      handleUserStatus
+    )
+
+    socket.on(
+      'staffMessageRead',
+      handleStaffMessageRead
+    )
+
+    socket.on(
+      'staffUserTyping',
+      handleStaffUserTyping
+    )
+
+    socket.on(
+      'staffUserStoppedTyping',
+      handleStaffUserStoppedTyping
+    )
 
     return () => {
-      socket.off('newStaffMessage')
-      socket.off('userStatus')
-      socket.off('staffMessageRead')
-      socket.off('staffUserTyping')
-      socket.off('staffUserStoppedTyping')
+      socket.off(
+        'newStaffMessage',
+        handleNewStaffMessage
+      )
+
+      socket.off(
+        'userStatus',
+        handleUserStatus
+      )
+
+      socket.off(
+        'staffMessageRead',
+        handleStaffMessageRead
+      )
+
+      socket.off(
+        'staffUserTyping',
+        handleStaffUserTyping
+      )
+
+      socket.off(
+        'staffUserStoppedTyping',
+        handleStaffUserStoppedTyping
+      )
     }
 
   }, [
@@ -187,7 +229,8 @@ const StaffChatWindow = ({
 
     messages.forEach((message) => {
       if (
-        String(message.sender) !== String(user.id) &&
+        String(message.sender) !==
+          String(user.id) &&
         !message.read
       ) {
         socket.emit('staffMessageRead', {
@@ -213,7 +256,10 @@ const StaffChatWindow = ({
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener(
+      'mousedown',
+      handleClickOutside
+    )
 
     return () => {
       document.removeEventListener(
@@ -271,20 +317,26 @@ const StaffChatWindow = ({
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data'
+            'Content-Type':
+              'multipart/form-data'
           }
         }
       )
 
-      const { fileUrl, fileName } = response.data
+      const { fileUrl, fileName } =
+        response.data
 
       let messageType = 'file'
 
       if (file.type.startsWith('image/')) {
         messageType = 'image'
-      } else if (file.type.startsWith('audio/')) {
+      } else if (
+        file.type.startsWith('audio/')
+      ) {
         messageType = 'audio'
-      } else if (file.type.startsWith('video/')) {
+      } else if (
+        file.type.startsWith('video/')
+      ) {
         messageType = 'video'
       }
 
@@ -302,7 +354,10 @@ const StaffChatWindow = ({
       })
 
     } catch (error) {
-      console.log('Staff file upload error:', error)
+      console.log(
+        'Staff file upload error:',
+        error
+      )
     } finally {
       setUploading(false)
       e.target.value = ''
@@ -370,17 +425,23 @@ const StaffChatWindow = ({
 
     console.log('START CALL')
     console.log('roomId:', roomId)
-    console.log('otherUserId:', otherUserId)
-    console.log('userId:', user.id)
+    console.log(
+      'otherUserId:',
+      otherUserId
+    )
+    console.log(
+      'userId:',
+      user.id
+    )
 
     pendingIceCandidatesRef.current = []
 
     try {
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: type === 'video'
-      })
+      const stream =
+        await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: type === 'video'
+        })
 
       localStreamRef.current = stream
 
@@ -390,11 +451,17 @@ const StaffChatWindow = ({
       setCallType(type)
       setCallActive(true)
 
-      const peer = createPeerConnection()
+      const peer =
+        createPeerConnection()
 
-      stream.getTracks().forEach((track) => {
-        peer.addTrack(track, stream)
-      })
+      stream.getTracks().forEach(
+        (track) => {
+          peer.addTrack(
+            track,
+            stream
+          )
+        }
+      )
 
       peer.ontrack = (event) => {
         if (remoteVideoRef.current) {
@@ -405,37 +472,54 @@ const StaffChatWindow = ({
 
       peer.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit('staffCallSignal', {
-            roomId,
-            to: otherUserId,
-            from: user.id,
-            signal: {
-              type: 'ice-candidate',
-              candidate: event.candidate
-            },
-            callType: type
-          })
+          socket.emit(
+            'staffCallSignal',
+            {
+              roomId,
+              to: otherUserId,
+              from: user.id,
+              signal: {
+                type:
+                  'ice-candidate',
+                candidate:
+                  event.candidate
+              },
+              callType: type
+            }
+          )
         }
       }
 
-      const offer = await peer.createOffer()
+      const offer =
+        await peer.createOffer()
 
-      await peer.setLocalDescription(offer)
+      await peer.setLocalDescription(
+        offer
+      )
 
-      socket.emit('staffIncomingCall', {
-        roomId,
-        to: otherUserId,
-        from: user.id,
-        signal: {
-          type: 'offer',
-          sdp: offer.sdp
-        },
-        callType: type
-      })
+      socket.emit(
+        'staffIncomingCall',
+        {
+          roomId,
+          to: otherUserId,
+          from: user.id,
+          signal: {
+            type: 'offer',
+            sdp: offer.sdp
+          },
+          callType: type
+        }
+      )
 
     } catch (error) {
-      console.log('Start call error:', error)
-      alert('Please allow microphone/camera access.')
+      console.log(
+        'Start call error:',
+        error
+      )
+
+      alert(
+        'Please allow microphone/camera access.'
+      )
     }
   }
 
@@ -468,11 +552,17 @@ const StaffChatWindow = ({
       setCallActive(true)
       setIncomingCall(null)
 
-      const peer = createPeerConnection()
+      const peer =
+        createPeerConnection()
 
-      stream.getTracks().forEach((track) => {
-        peer.addTrack(track, stream)
-      })
+      stream.getTracks().forEach(
+        (track) => {
+          peer.addTrack(
+            track,
+            stream
+          )
+        }
+      )
 
       peer.ontrack = (event) => {
         if (remoteVideoRef.current) {
@@ -483,21 +573,28 @@ const StaffChatWindow = ({
 
       peer.onicecandidate = (event) => {
         if (event.candidate) {
-          socket.emit('staffCallSignal', {
-            roomId,
-            to: from,
-            from: user.id,
-            signal: {
-              type: 'ice-candidate',
-              candidate: event.candidate
-            },
-            callType: type
-          })
+          socket.emit(
+            'staffCallSignal',
+            {
+              roomId,
+              to: from,
+              from: user.id,
+              signal: {
+                type:
+                  'ice-candidate',
+                candidate:
+                  event.candidate
+              },
+              callType: type
+            }
+          )
         }
       }
 
       await peer.setRemoteDescription(
-        new RTCSessionDescription(signal)
+        new RTCSessionDescription(
+          signal
+        )
       )
 
       for (
@@ -505,30 +602,45 @@ const StaffChatWindow = ({
         pendingIceCandidatesRef.current
       ) {
         await peer.addIceCandidate(
-          new RTCIceCandidate(candidate)
+          new RTCIceCandidate(
+            candidate
+          )
         )
       }
 
-      pendingIceCandidatesRef.current = []
+      pendingIceCandidatesRef.current =
+        []
 
-      const answer = await peer.createAnswer()
+      const answer =
+        await peer.createAnswer()
 
-      await peer.setLocalDescription(answer)
+      await peer.setLocalDescription(
+        answer
+      )
 
-      socket.emit('staffCallSignal', {
-        roomId,
-        to: from,
-        from: user.id,
-        signal: {
-          type: 'answer',
-          sdp: answer.sdp
-        },
-        callType: type
-      })
+      socket.emit(
+        'staffCallSignal',
+        {
+          roomId,
+          to: from,
+          from: user.id,
+          signal: {
+            type: 'answer',
+            sdp: answer.sdp
+          },
+          callType: type
+        }
+      )
 
     } catch (error) {
-      console.log('Accept call error:', error)
-      alert('Please allow microphone/camera access.')
+      console.log(
+        'Accept call error:',
+        error
+      )
+
+      alert(
+        'Please allow microphone/camera access.'
+      )
     }
   }
 
@@ -539,10 +651,13 @@ const StaffChatWindow = ({
   const rejectCall = () => {
 
     if (incomingCall) {
-      socket.emit('staffCallRejected', {
-        roomId,
-        to: incomingCall.from
-      })
+      socket.emit(
+        'staffCallRejected',
+        {
+          roomId,
+          to: incomingCall.from
+        }
+      )
     }
 
     setIncomingCall(null)
@@ -554,7 +669,8 @@ const StaffChatWindow = ({
 
   const toggleMute = () => {
 
-    const stream = localStreamRef.current
+    const stream =
+      localStreamRef.current
 
     if (!stream) return
 
@@ -562,9 +678,12 @@ const StaffChatWindow = ({
       stream.getAudioTracks()[0]
 
     if (audioTrack) {
-      audioTrack.enabled = !audioTrack.enabled
+      audioTrack.enabled =
+        !audioTrack.enabled
 
-      setIsMuted(!audioTrack.enabled)
+      setIsMuted(
+        !audioTrack.enabled
+      )
     }
   }
 
@@ -574,7 +693,8 @@ const StaffChatWindow = ({
 
   const toggleCamera = () => {
 
-    const stream = localStreamRef.current
+    const stream =
+      localStreamRef.current
 
     if (!stream) return
 
@@ -582,9 +702,12 @@ const StaffChatWindow = ({
       stream.getVideoTracks()[0]
 
     if (videoTrack) {
-      videoTrack.enabled = !videoTrack.enabled
+      videoTrack.enabled =
+        !videoTrack.enabled
 
-      setIsCameraOn(videoTrack.enabled)
+      setIsCameraOn(
+        videoTrack.enabled
+      )
     }
   }
 
@@ -594,7 +717,8 @@ const StaffChatWindow = ({
 
   const endCall = (notify = true) => {
 
-    const peer = peerRef.current
+    const peer =
+      peerRef.current
 
     peerRef.current = null
 
@@ -614,20 +738,26 @@ const StaffChatWindow = ({
     }
 
     if (localVideoRef.current) {
-      localVideoRef.current.srcObject = null
+      localVideoRef.current.srcObject =
+        null
     }
 
     if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = null
+      remoteVideoRef.current.srcObject =
+        null
     }
 
-    pendingIceCandidatesRef.current = []
+    pendingIceCandidatesRef.current =
+      []
 
     if (notify) {
-      socket.emit('staffCallEnded', {
-        roomId,
-        to: otherUserId
-      })
+      socket.emit(
+        'staffCallEnded',
+        {
+          roomId,
+          to: otherUserId
+        }
+      )
     }
 
     setCallActive(false)
@@ -661,7 +791,7 @@ const StaffChatWindow = ({
 
   useEffect(() => {
 
-    socket.on('staffIncomingCall', (data) => {
+    const handleIncomingCall = (data) => {
 
       if (
         String(data.to) ===
@@ -669,104 +799,113 @@ const StaffChatWindow = ({
       ) {
         setIncomingCall(data)
       }
+    }
 
-    })
+    const handleCallSignal =
+      async (data) => {
 
-    socket.on('staffCallSignal', async (data) => {
-
-      if (
-        String(data.to) !==
-        String(user.id)
-      ) {
-        return
-      }
-
-      const peer = peerRef.current
-
-      if (data.signal.type === 'offer') {
-
-        if (!peer) return
-
-        try {
-
-          await peer.setRemoteDescription(
-            new RTCSessionDescription(
-              data.signal
-            )
-          )
-
-          const answer =
-            await peer.createAnswer()
-
-          await peer.setLocalDescription(answer)
-
-          socket.emit('staffCallSignal', {
-            roomId,
-            to: data.from,
-            from: user.id,
-            signal: {
-              type: 'answer',
-              sdp: answer.sdp
-            },
-            callType: data.callType
-          })
-
-        } catch (error) {
-          console.log(
-            'Offer handling error:',
-            error
-          )
-        }
-      }
-
-      if (data.signal.type === 'answer') {
-
-        if (!peer) return
-
-        try {
-
-          await peer.setRemoteDescription(
-            new RTCSessionDescription(
-              data.signal
-            )
-          )
-
-          for (
-            const candidate of
-            pendingIceCandidatesRef.current
-          ) {
-            await peer.addIceCandidate(
-              new RTCIceCandidate(candidate)
-            )
-          }
-
-          pendingIceCandidatesRef.current = []
-
-        } catch (error) {
-          console.log(
-            'Answer error:',
-            error
-          )
-        }
-      }
-
-      if (
-        data.signal.type ===
-        'ice-candidate'
-      ) {
-
-        if (!peer) {
-
-          pendingIceCandidatesRef.current.push(
-            data.signal.candidate
-          )
-
+        if (
+          String(data.to) !==
+          String(user.id)
+        ) {
           return
         }
 
-        try {
+        const peer =
+          peerRef.current
 
-          if (!peer.remoteDescription) {
+        if (
+          data.signal.type ===
+          'offer'
+        ) {
+
+          if (!peer) return
+
+          try {
+
+            await peer.setRemoteDescription(
+              new RTCSessionDescription(
+                data.signal
+              )
+            )
+
+            const answer =
+              await peer.createAnswer()
+
+            await peer.setLocalDescription(
+              answer
+            )
+
+            socket.emit(
+              'staffCallSignal',
+              {
+                roomId,
+                to: data.from,
+                from: user.id,
+                signal: {
+                  type: 'answer',
+                  sdp: answer.sdp
+                },
+                callType:
+                  data.callType
+              }
+            )
+
+          } catch (error) {
+
+            console.log(
+              'Offer handling error:',
+              error
+            )
+
+          }
+        }
+
+        if (
+          data.signal.type ===
+          'answer'
+        ) {
+
+          if (!peer) return
+
+          try {
+
+            await peer.setRemoteDescription(
+              new RTCSessionDescription(
+                data.signal
+              )
+            )
+
+            for (
+              const candidate of
+              pendingIceCandidatesRef.current
+            ) {
+              await peer.addIceCandidate(
+                new RTCIceCandidate(
+                  candidate
+                )
+              )
+            }
+
+            pendingIceCandidatesRef.current =
+              []
+
+          } catch (error) {
+
+            console.log(
+              'Answer error:',
+              error
+            )
+
+          }
+        }
+
+        if (
+          data.signal.type ===
+          'ice-candidate'
+        ) {
+
+          if (!peer) {
 
             pendingIceCandidatesRef.current.push(
               data.signal.candidate
@@ -775,48 +914,100 @@ const StaffChatWindow = ({
             return
           }
 
-          await peer.addIceCandidate(
-            new RTCIceCandidate(
-              data.signal.candidate
-            )
-          )
+          try {
 
-        } catch (error) {
-          console.log(
-            'ICE candidate error:',
-            error
-          )
+            if (
+              !peer.remoteDescription
+            ) {
+
+              pendingIceCandidatesRef.current.push(
+                data.signal.candidate
+              )
+
+              return
+            }
+
+            await peer.addIceCandidate(
+              new RTCIceCandidate(
+                data.signal.candidate
+              )
+            )
+
+          } catch (error) {
+
+            console.log(
+              'ICE candidate error:',
+              error
+            )
+
+          }
         }
       }
 
-    })
-
-    socket.on('staffCallEnded', () => {
+    const handleCallEnded = () => {
 
       endCall(false)
 
       setCallEndedMessage(
         'The other user has ended the call.'
       )
-    })
+    }
 
-    socket.on('staffCallRejected', () => {
+    const handleCallRejected = () => {
 
       alert('Call rejected')
 
       endCall(false)
-    })
+    }
+
+    socket.on(
+      'staffIncomingCall',
+      handleIncomingCall
+    )
+
+    socket.on(
+      'staffCallSignal',
+      handleCallSignal
+    )
+
+    socket.on(
+      'staffCallEnded',
+      handleCallEnded
+    )
+
+    socket.on(
+      'staffCallRejected',
+      handleCallRejected
+    )
 
     return () => {
 
-      socket.off('staffIncomingCall')
-      socket.off('staffCallSignal')
-      socket.off('staffCallEnded')
-      socket.off('staffCallRejected')
+      socket.off(
+        'staffIncomingCall',
+        handleIncomingCall
+      )
 
+      socket.off(
+        'staffCallSignal',
+        handleCallSignal
+      )
+
+      socket.off(
+        'staffCallEnded',
+        handleCallEnded
+      )
+
+      socket.off(
+        'staffCallRejected',
+        handleCallRejected
+      )
     }
 
-  }, [user.id, roomId, otherUserId])
+  }, [
+    user.id,
+    roomId,
+    otherUserId
+  ])
 
   // ==========================================
   // UI
@@ -834,7 +1025,9 @@ const StaffChatWindow = ({
           <div className="relative flex-shrink-0">
 
             <div className="w-11 h-11 rounded-full bg-gradient-to-br from-dc-blue to-dc-green flex items-center justify-center font-bold text-white text-sm shadow-[0_4px_10px_-3px_rgba(74,144,164,0.5)]">
-              {otherUserName?.charAt(0).toUpperCase()}
+              {otherUserName
+                ?.charAt(0)
+                .toUpperCase()}
             </div>
 
             <span
@@ -1363,7 +1556,8 @@ const StaffChatWindow = ({
 
             <h3 className="font-semibold font-baloo text-lg text-dc-ink">
               Incoming{' '}
-              {incomingCall.callType === 'video'
+              {incomingCall.callType ===
+              'video'
                 ? 'Video'
                 : 'Audio'}{' '}
               Call
@@ -1449,7 +1643,9 @@ const StaffChatWindow = ({
             <div className="flex-1 flex flex-col items-center justify-center text-white">
 
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-dc-blue to-dc-green flex items-center justify-center text-3xl font-bold font-baloo shadow-[0_8px_20px_-6px_rgba(74,144,164,0.6)]">
-                {otherUserName?.charAt(0).toUpperCase()}
+                {otherUserName
+                  ?.charAt(0)
+                  .toUpperCase()}
               </div>
 
               <h2 className="text-xl font-semibold font-baloo mt-4">
@@ -1571,3 +1767,4 @@ const StaffChatWindow = ({
 }
 
 export default StaffChatWindow
+
