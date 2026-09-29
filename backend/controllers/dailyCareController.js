@@ -1,6 +1,7 @@
 const Enrollment = require('../models/Enrollment')
 const DailyCareUpdate = require('../models/DailyCareUpdate')
 const { ENROLLMENT_STATUS } = require('../constants')
+const User = require('../models/User')
 
 const getDailyCareChildren = async (req, res) => {
   try {
@@ -14,17 +15,6 @@ const allAssigned = await Enrollment.find({
   assignedStaff: req.user.id
 })
 
-console.log(
-  'ALL ASSIGNED ENROLLMENTS:',
-  allAssigned.map((enrollment) => ({
-    id: enrollment._id,
-    child: enrollment.child,
-    status: enrollment.enrollmentStatus,
-    startDate: enrollment.startDate,
-    endDate: enrollment.endDate,
-    assignedStaff: enrollment.assignedStaff
-  }))
-)
 
     const enrollments = await Enrollment.find({
       assignedStaff: req.user.id,
@@ -48,6 +38,12 @@ console.log(
       enrollment: { $in: enrollmentIds },
       date: today
     })
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     const updateMap = new Map(
       updates.map((update) => [
@@ -94,6 +90,13 @@ const saveDailyCareUpdate = async (req, res) => {
         message: 'Enrollment ID is required'
       })
     }
+    
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     const enrollment = await Enrollment.findOne({
       _id: enrollmentId,
@@ -185,6 +188,12 @@ const getParentDailyCareUpdates = async (req, res) => {
 
     today.setHours(0, 0, 0, 0)
 
+    if (req.user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked'
+      })
+}
     const enrollments = await Enrollment.find({
       parent: req.user.id
     })
@@ -197,6 +206,7 @@ const getParentDailyCareUpdates = async (req, res) => {
       (enrollment) => enrollment._id
     )
 
+      
     const updates = await DailyCareUpdate.find({
       enrollment: { $in: enrollmentIds }
     })

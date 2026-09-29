@@ -12,6 +12,13 @@ const getOwnerWallet = async (req, res) => {
       owner: req.user.id
     })
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
     if (!wallet) {
       return res.status(404).json({
         success: false,
@@ -42,7 +49,7 @@ const getOwnerWallet = async (req, res) => {
     ]
   })
   .sort({ createdAt: -1 })
-  
+
     res.status(200).json({
       success: true,
       data: {
@@ -78,6 +85,12 @@ const withdrawMoney = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     // Start transaction
     session.startTransaction()
 

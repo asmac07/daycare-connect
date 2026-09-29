@@ -22,6 +22,13 @@ const createSlot = async (req, res) => {
           })
         }
 
+        if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
         const daycare = await Daycare.findOne({ owner: req.user.id })
 
         if (!daycare) {
@@ -74,6 +81,13 @@ const getMySlots = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Daycare not found' })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
     const slots = await VisitSlot.find({ daycare: daycare._id })
                     .populate('bookedBy', 'name email')
                     .populate('child', 'name dateOfBirth')
@@ -91,6 +105,13 @@ const getMySlots = async (req, res) => {
 const getAvailableSlots = async (req, res) => {
   try {
     const { daycareId } = req.params
+
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -126,6 +147,13 @@ const bookSlot = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: 'Child is required for booking'
+          })
+        }
+
+        if (req.user.isBlocked) {
+          return res.status(403).json({
+            success: false,
+            message: 'Your account has been blocked'
           })
         }
 
@@ -178,6 +206,12 @@ const bookSlot = async (req, res) => {
 const getMyBookings = async (req, res) => {
   try {
     
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const bookings = await VisitSlot.find({
         bookedBy: req.user.id,
         status: {
@@ -211,6 +245,12 @@ const cancelBooking = async (req, res) => {
       { status: VISIT_SLOT_STATUS.AVAILABLE , bookedBy: null },
       { new: true }
     )
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     if (!slot) {
       return res.status(404).json({ success: false, message: 'Booking not found' })
@@ -260,6 +300,13 @@ const getVisitSlotDetails = async (req, res) => {
         })
       }
 
+      if (req.user.isBlocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been blocked'
+        })
+      }
+
       res.status(200).json({
         success: true,
         data: slot
@@ -283,6 +330,13 @@ const requestReschedule = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Daycare not found'
+      })
+    }
+
+    if (req.user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked'
       })
     }
 
@@ -362,6 +416,13 @@ const rescheduleToNewSlot = async (req, res) => {
     const oldSlotId = req.params.id
 
     
+    if (req.user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked'
+      })
+    }
+
     if (!newSlotId) {
       return res.status(400).json({
         success: false,
@@ -469,6 +530,13 @@ const cancelBookingByOwner = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your account has been blocked'
+        })
+      }
+
     const slot = await VisitSlot.findOne({
       _id: req.params.id,
       daycare: daycare._id,
@@ -545,6 +613,13 @@ const markVisitCompleted = async (req, res) => {
             message: 'Visit slot not found'
           })
         }
+
+        if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
         // Only booked visits can completed
         if (slot.status !== VISIT_SLOT_STATUS.BOOKED) {

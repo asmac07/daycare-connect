@@ -12,6 +12,12 @@ const createStaff = async (req, res) => {
   try {
     const { name, email, password , designation} = req.body
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     if (!name || !email || !password || password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -77,6 +83,12 @@ const getMyStaff = async (req, res) => {
   try {
     const daycare = await Daycare.findOne({ owner: req.user.id })
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     if (!daycare) {
       return res.status(404).json({ success: false, message: 'Daycare not found' })
     }
@@ -105,6 +117,12 @@ const getStaffDaycare = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     res.status(200).json({
        success: true, 
        data: daycare 
@@ -134,6 +152,12 @@ const updateStaff = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     //if the staff.name is undefined , the old value remains
     staff.name = name || staff.name 
     staff.email = email || staff.email
@@ -187,6 +211,12 @@ const getAssignedChildren = async (req, res) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const filter = {
       assignedStaff: req.user.id,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
@@ -258,6 +288,12 @@ const getAssignedChildren = async (req, res) => {
 
 const getAssignedParents = async (req, res) => {
   try {
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const enrollments = await Enrollment.find({
       assignedStaff: req.user.id,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED

@@ -3,6 +3,7 @@ const Child = require('../models/Child')
 const Enrollment = require('../models/Enrollment')
 const Payment = require('../models/Payment')
 const { ENROLLMENT_STATUS , PAYMENT_STATUS } = require('../constants')
+const User = require('../models/User')
 
 const addChild = async (req, res) => {
     try {
@@ -14,6 +15,12 @@ const addChild = async (req, res) => {
             message: 'Child name is required'
           })
         }
+       if (req.user.isBlocked) {
+          return res.status(403).json({
+            success: false,
+            message: 'Your account has been blocked'
+          })
+}
 
         if (!dateOfBirth) {
           return res.status(400).json({
@@ -76,6 +83,12 @@ const updateChild = async (req, res) => {
         })
       }
 
+     if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
       const child = await Child.findOneAndUpdate(
 
         {
@@ -113,35 +126,7 @@ const updateChild = async (req, res) => {
   }
 }
 
-// const deleteChild = async (req, res) => {
-//   try {
 
-//     const child = await Child.findOneAndDelete({
-//       _id: req.params.id,
-//       parent: req.user.id
-//     })
-
-//     if (!child) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'child not found'
-//       })
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       message: 'child deleted successfully',
-//       data: child
-//     })
-
-//   } 
-//   catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: error.message
-//     })
-//   }
-// }
 
 const deleteChild = async (req, res) => {
   try {
@@ -163,6 +148,13 @@ const deleteChild = async (req, res) => {
     })
 
   
+    if (req.user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked'
+      })
+    }
+    
     if (enrollment) {
 
       if (enrollment.enrollmentStatus === ENROLLMENT_STATUS.PENDING) {

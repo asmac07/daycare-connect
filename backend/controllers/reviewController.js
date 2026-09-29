@@ -1,6 +1,6 @@
 const Review = require('../models/Review')
 const Daycare = require('../models/Daycare')
-
+const User= require('../models/User')
 const addReview = async (req, res) => {
   try {
     const { daycare, enrollment, rating, comment } = req.body
@@ -12,6 +12,12 @@ const addReview = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const review = await Review.create({
       parent: req.user.id,
       daycare,
@@ -41,6 +47,13 @@ const addReview = async (req, res) => {
 
 const getReviewsByDaycare = async (req, res) => {
   try {
+    
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const reviews = await Review.find({ daycare: req.params.daycareId }).populate('parent', 'name')
     res.status(200).json({ success: true, data: reviews })
   } catch (error) {

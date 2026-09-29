@@ -3,6 +3,7 @@ const Daycare = require('../models/Daycare')
 const { DAYCARE_STATUS } = require('../constants')
 const Enrollment = require('../models/Enrollment')
 const { ENROLLMENT_STATUS } = require('../constants')
+const User = require('../models/User')
 
 const createDaycare = async (req, res) => {
   try {
@@ -86,6 +87,13 @@ const getMyDaycare = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+    return res.status(403).json({
+      success: false,
+      message: 'Your account has been blocked'
+    })
+  }
+
     const confirmedEnrollments = await Enrollment.countDocuments({
       daycare: daycare._id,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED
@@ -131,6 +139,13 @@ const updateDaycare = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Daycare not found'
+      })
+    }
+
+    if (req.user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked'
       })
     }
 
@@ -220,6 +235,13 @@ const searchNearbyDaycare = async (req, res) => {
 
     const skip = (pageNumber - 1) * limitNumber
 
+if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
     const filter = {
       verificationStatus: DAYCARE_STATUS.APPROVED,
       isBlocked: false,
@@ -281,6 +303,12 @@ const searchDaycare = async (req, res) => {
       limit = 5
     } = req.query
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const pageNumber = Number(page)
     const limitNumber = Number(limit)
 
@@ -340,6 +368,13 @@ const getApprovedDaycares = async (req, res) => {
       verificationStatus: DAYCARE_STATUS.APPROVED,
       isBlocked: false
     })
+
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     res.status(200).json({
       success: true,

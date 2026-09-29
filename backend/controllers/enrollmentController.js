@@ -51,6 +51,12 @@ const createEnrollmentRequest = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     
     if (
       ![
@@ -199,6 +205,12 @@ const approveEnrollment = async (req, res) => {
         message: 'Enrollment not found'
       })
     }
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     const daycare = await Daycare.findOne({
       _id: enrollment.daycare,
@@ -352,6 +364,12 @@ const rejectEnrollment = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     const daycare = await Daycare.findOne({
       _id: enrollment.daycare,
       owner: req.user.id
@@ -451,6 +469,12 @@ const getMyEnrollments = async (req, res) => {
 
     console.log('Parent ID:', req.user.id)
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     // Exact enrollment requested
     if (enrollmentId) {
       const enrollment = await Enrollment.findOne({
@@ -602,6 +626,12 @@ const getDaycareEnrollments = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     // Total enrollments
     const total = await Enrollment.countDocuments({
       daycare: daycare._id
@@ -667,6 +697,13 @@ const assignStaff = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Enrollment not found' })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
     const daycare = await Daycare.findOne({ _id: enrollment.daycare, owner: req.user.id })
 
     if (!daycare) {
@@ -704,6 +741,14 @@ const assignStaff = async (req, res) => {
 
 const getMyAssignedStaff = async (req, res) => {
   try {
+
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
+
     const enrollments = await Enrollment.find({
       parent: req.user.id,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED,
@@ -744,6 +789,12 @@ const renewEnrollment = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     //  Validate package
     let amount
 
@@ -963,6 +1014,12 @@ const checkEnrollmentAvailability = async (req, res) => {
       })
     }
 
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
     
     const requestedStartDate = new Date(startDate)
     const requestedEndDate = new Date(endDate)

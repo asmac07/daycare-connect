@@ -3,6 +3,7 @@ const StaffMessage = require('../models/StaffMessage')
 const Enrollment = require('../models/Enrollment')
 const { ENROLLMENT_STATUS } = require('../constants')
 
+
 const getStaffMessages = async (req, res) => {
   try {
     const { daycareId, parentId, staffId, childId } = req.params
@@ -13,6 +14,13 @@ const getStaffMessages = async (req, res) => {
       assignedStaff: staffId,
       enrollmentStatus: ENROLLMENT_STATUS.CONFIRMED
     })
+
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     if (!enrollment) {
       return res.status(403).json({

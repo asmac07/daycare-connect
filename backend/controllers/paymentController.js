@@ -4,7 +4,7 @@ const crypto = require('crypto')
 const Enrollment = require('../models/Enrollment')
 const Payment = require('../models/Payment')
 const { ENROLLMENT_STATUS, PAYMENT_STATUS } = require('../constants')
-
+const User =require('../models/User')
 const mongoose = require('mongoose')
 const Wallet = require('../models/Wallet')
 const WalletTransaction = require('../models/WalletTransaction')
@@ -22,6 +22,12 @@ const createOrder = async (req, res) => {
     if (!enrollmentId || !amount) {
       return res.status(400).json({ success: false, message: 'Enrollment ID and amount are required' })
     }
+    if (req.user.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'Your account has been blocked'
+  })
+}
 
     if (amount <= 0) {
 
