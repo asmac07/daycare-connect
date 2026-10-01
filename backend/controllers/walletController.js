@@ -333,7 +333,7 @@ c
 
       
       } catch (error) {
-
+        
         await session.abortTransaction()
 
         throw error

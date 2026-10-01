@@ -63,10 +63,8 @@ const getAllUsers = async (req, res) => {
   }
 }
 
-
 const blockUser = async (req, res) => {
   try {
-
     const user = await User.findById(req.params.id)
 
     if (!user) {
@@ -77,19 +75,48 @@ const blockUser = async (req, res) => {
     }
 
     if (user.role === 'admin') {
-        return res.status(403).json({
-          success: false,
-          message: 'Admin account cannot be blocked'
-        })
-      }
+      return res.status(403).json({
+        success: false,
+        message: 'Admin account cannot be blocked'
+      })
+    }
 
+    // Block the user
     user.isBlocked = true
-
     await user.save()
+
+    // If the user is an owner,
+    // block the related daycare and its staff
+    if (user.role === 'owner') {
+
+      const daycare = await Daycare.findOne({
+        owner: user._id
+      })
+
+      if (daycare) {
+
+        // Block daycare
+        daycare.isBlocked = true
+        await daycare.save()
+
+        // Block all staff belonging to this daycare
+        await User.updateMany(
+          {
+            daycare: daycare._id,
+            role: 'staff'
+          },
+          {
+            $set: {
+              isBlocked: true
+            }
+          }
+        )
+      }
+    }
 
     res.status(200).json({
       success: true,
-      message: 'User blocked successfully',
+      message: 'User and related daycare resources blocked successfully',
       data: user
     })
 
@@ -101,9 +128,9 @@ const blockUser = async (req, res) => {
   }
 }
 
+
 const unblockUser = async (req, res) => {
   try {
-
     const user = await User.findById(req.params.id)
 
     if (!user) {
@@ -113,13 +140,42 @@ const unblockUser = async (req, res) => {
       })
     }
 
+    // Unblock the user
     user.isBlocked = false
-
     await user.save()
+
+    // If the user is an owner,
+    // unblock the related daycare and its staff
+    if (user.role === 'owner') {
+
+      const daycare = await Daycare.findOne({
+        owner: user._id
+      })
+
+      if (daycare) {
+
+        // Unblock daycare
+        daycare.isBlocked = false
+        await daycare.save()
+
+        // Unblock all staff belonging to this daycare
+        await User.updateMany(
+          {
+            daycare: daycare._id,
+            role: 'staff'
+          },
+          {
+            $set: {
+              isBlocked: false
+            }
+          }
+        )
+      }
+    }
 
     res.status(200).json({
       success: true,
-      message: 'User unblocked successfully',
+      message: 'User and related daycare resources unblocked successfully',
       data: user
     })
 
@@ -130,7 +186,6 @@ const unblockUser = async (req, res) => {
     })
   }
 }
-
 
 
 const getPendingDaycares = async (req, res) => {
@@ -217,26 +272,9 @@ const rejectDaycare = async (req, res) => {
   }
 }
 
+
 const blockDaycare = async (req, res) => {
   try {
-    const daycare = await Daycare.findById(req.params.id)
-
-    if (!daycare) {
-      return res.status(404).json({ success: false, message: 'Daycare not found' })
-    }
-
-    daycare.isBlocked = true
-    await daycare.save()
-
-    res.status(200).json({ success: true, message: 'Daycare blocked successfully', data: daycare })
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message })
-  }
-}
-
-const unblockDaycare = async (req, res) => {
-  try {
-
     const daycare = await Daycare.findById(req.params.id)
 
     if (!daycare) {
@@ -246,12 +284,86 @@ const unblockDaycare = async (req, res) => {
       })
     }
 
-    daycare.isBlocked = false
+    // Block daycare
+    daycare.isBlocked = true
     await daycare.save()
+
+    // Find the owner of this daycare
+    const owner = await User.findById(daycare.owner)
+
+    if (owner) {
+      // Block owner
+      owner.isBlocked = true
+      await owner.save()
+
+      // Block all staff belonging to this daycare
+      await User.updateMany(
+        {
+          daycare: daycare._id,
+          role: 'staff'
+        },
+        {
+          $set: {
+            isBlocked: true
+          }
+        }
+      )
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Daycare unblocked successfully',
+      message: 'Daycare, owner and related staff blocked successfully',
+      data: daycare
+    })
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    })
+  }
+}
+
+const unblockDaycare = async (req, res) => {
+  try {
+    const daycare = await Daycare.findById(req.params.id)
+
+    if (!daycare) {
+      return res.status(404).json({
+        success: false,
+        message: 'Daycare not found'
+      })
+    }
+
+    // Unblock daycare
+    daycare.isBlocked = false
+    await daycare.save()
+
+    // Find owner
+    const owner = await User.findById(daycare.owner)
+
+    if (owner) {
+      // Unblock owner
+      owner.isBlocked = false
+      await owner.save()
+
+      // Unblock staff
+      await User.updateMany(
+        {
+          daycare: daycare._id,
+          role: 'staff'
+        },
+        {
+          $set: {
+            isBlocked: false
+          }
+        }
+      )
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Daycare, owner and related staff unblocked successfully',
       data: daycare
     })
 
@@ -272,6 +384,7 @@ const getAllDaycares = async (req, res) => {
     const total = await Daycare.countDocuments()
 
     const daycares = await Daycare.find()
+                      .populate('owner', 'name email')
                       .skip(skip)
                       .limit(Number(limit))
 

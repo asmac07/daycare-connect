@@ -35,7 +35,7 @@ const allAssigned = await Enrollment.find({
     )
 
     const updates = await DailyCareUpdate.find({
-      enrollment: { $in: enrollmentIds },
+      enrollment: { $in: enrollmentIds }, //to match anyone to this id
       date: today
     })
     if (req.user.isBlocked) {
@@ -75,7 +75,7 @@ const allAssigned = await Enrollment.find({
 
 const saveDailyCareUpdate = async (req, res) => {
   try {
-    const {
+    let {
       enrollmentId,
       attendance,
       breakfast,
@@ -83,6 +83,13 @@ const saveDailyCareUpdate = async (req, res) => {
       nap,
       activity
     } = req.body
+
+    if (attendance === 'absent') {
+            breakfast = null
+            lunch = null
+            nap = null
+            activity = null
+          }
 
     if (!enrollmentId) {
       return res.status(400).json({
@@ -230,9 +237,7 @@ const getParentDailyCareUpdates = async (req, res) => {
       if (
         !latestUpdateByEnrollment.has(enrollmentId) ||
         new Date(update.date) >
-          new Date(
-            latestUpdateByEnrollment.get(enrollmentId).date
-          )
+          new Date(latestUpdateByEnrollment.get(enrollmentId).date )
       ) {
         latestUpdateByEnrollment.set(enrollmentId, update)
       }
@@ -247,6 +252,7 @@ const getParentDailyCareUpdates = async (req, res) => {
       if (!childId) return
 
       if (!enrollmentsByChild.has(childId)) {
+
         enrollmentsByChild.set(childId, [])
       }
 
@@ -280,12 +286,13 @@ const getParentDailyCareUpdates = async (req, res) => {
       // Active enrollment gets priority
       const selectedEnrollment =
         activeEnrollment || childEnrollments[0]
-
+      
       if (!selectedEnrollment) return
 
       const enrollmentId =
         selectedEnrollment._id.toString()
 
+        //take the latest update from the map 
       const latestUpdate =
         latestUpdateByEnrollment.get(enrollmentId)
 
@@ -293,7 +300,8 @@ const getParentDailyCareUpdates = async (req, res) => {
       // still return the child with dailyCareUpdate = null
       if (latestUpdate) {
         data.push(latestUpdate)
-      } else {
+      }
+       else {
         data.push({
           _id: `enrollment-${enrollmentId}`,
           child: selectedEnrollment.child,

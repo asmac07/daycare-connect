@@ -444,6 +444,10 @@ const AdminPanel = () => {
                         </th>
 
                         <th className="py-2 pr-4 font-semibold">
+                          Owner
+                        </th>
+
+                        <th className="py-2 pr-4 font-semibold">
                           Address
                         </th>
 
@@ -486,6 +490,9 @@ const AdminPanel = () => {
                               {daycare.name}
                             </td>
 
+                            <td className="py-3 pr-4 font-semibold text-dc-ink">
+                              {daycare.owner?.name || '—'}
+                            </td>
 
                             <td className="py-3 pr-4 text-dc-muted">
                               {daycare.address}

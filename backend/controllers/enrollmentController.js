@@ -874,14 +874,6 @@ const renewEnrollment = async (req, res) => {
     enrollmentEndDate.setHours(0, 0, 0, 0)
 
 
-    console.log('RENEWAL DATE DEBUG:', {
-  enrollmentStatus: oldEnrollment.enrollmentStatus,
-  rawEndDate: oldEnrollment.endDate,
-  endDate: enrollmentEndDate,
-  today: today,
-  isExpired: enrollmentEndDate < today
-})
-
     if (enrollmentEndDate >= today) {
       return res.status(400).json({
         success: false,
@@ -1051,6 +1043,12 @@ const checkEnrollmentAvailability = async (req, res) => {
         message: 'Daycare not found'
       })
     }
+    if (daycare.isBlocked) {
+  return res.status(403).json({
+    success: false,
+    message: 'This daycare is temporarily unavailable'
+  })
+}
 
     //  Check overlapping confirmed enrollments
     const bookedSeats = await Enrollment.countDocuments({

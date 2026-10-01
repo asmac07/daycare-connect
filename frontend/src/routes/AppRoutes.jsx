@@ -9,6 +9,7 @@ import VerifyOtp from '../pages/auth/VerifyOtp'
 
 import Layout from '../layouts/Layout'
 import ProtectedRoute from './ProtectedRoute'
+import RoleRedirect from './RoleRedirect'
 
 import AdminLayout from '../layouts/AdminLayout'
 import OwnerLayout from '../layouts/OwnerLayout'
@@ -48,8 +49,9 @@ const AppRoutes = () => {
     <Routes>
 
       <Route element={<Layout />}>
+        
+        <Route path="/" element={<RoleRedirect />} />
 
-        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgotPassword" element={<ForgotPassword />} />
@@ -66,7 +68,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="daycares" element={<AdminPanel />} />
         </Route>

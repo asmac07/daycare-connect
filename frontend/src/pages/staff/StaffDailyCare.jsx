@@ -35,6 +35,7 @@ const StaffDailyCare = () => {
       const initialCareData = {}
 
       data.forEach((enrollment) => {
+        //check in backend, the enrollmnt data is alrdy existed
         const savedUpdate = enrollment.dailyCareUpdate
 
         initialCareData[enrollment._id] = {
