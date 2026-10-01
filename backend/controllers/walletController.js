@@ -213,87 +213,61 @@ const razorpayXWebhook = async (req, res) => {
       req.headers['x-razorpay-signature']
 
     // Verify webhook signature
-    const expectedSignature = crypto
-      .createHmac(
-        'sha256',
-        process.env.RAZORPAYX_WEBHOOK_SECRET
-      )
-      .update(req.rawBody)
-      .digest('hex')
-
-      const expectedSignatureUtf8 = crypto
+      const expectedSignature = crypto
         .createHmac('sha256', process.env.RAZORPAYX_WEBHOOK_SECRET)
-        .update(req.rawBody.toString('utf8'), 'utf8')
+        .update(req.rawBody)
         .digest('hex')
 
-c
+        console.log('WEBHOOK SIGNATURE:', webhookSignature)
+console.log('RAW BODY:', req.rawBody?.toString())
+console.log(
+  'WEBHOOK SECRET EXISTS:',
+  !!process.env.RAZORPAYX_WEBHOOK_SECRET
+)
+console.log('EXPECTED SIGNATURE:', expectedSignature)
+
     if (webhookSignature !== expectedSignature) {
-
-   
-
+      console.log('Webhook signature mismatch')
       return res.status(400).json({
         success: false,
         message: 'Invalid webhook signature'
       })
     }
 
-
-
     const event = req.body.event
 
- 
-
-    const payout =
-      req.body.payload?.payout?.entity
-
-
+    const payout =  req.body.payload?.payout?.entity
 
     if (!payout) {
 
-
-
       return res.status(200).json({
         success: true
       })
     }
 
-
-    const transaction =
-      await WalletTransaction.findOne({
-        razorpayPayoutId: payout.id
-      })
-
+    const transaction = await WalletTransaction.findOne({
+                      razorpayPayoutId: payout.id
+                   })
 
     if (!transaction) {
 
-  
       return res.status(200).json({
         success: true
       })
     }
 
-   
-
-
-
-    if (event === 'payout.processed') {
-
-     
+   if (event === 'payout.processed') {
       // Already processed
       if (
         transaction.payoutStatus === 'SUCCESS'
       ) {
-
-      
 
         return res.status(200).json({
           success: true
         })
       }
 
-      const session =
-        await mongoose.startSession()
-
+      const session =await mongoose.startSession()
       try {
 
         session.startTransaction()
@@ -308,9 +282,6 @@ c
             'Wallet not found'
           )
         }
-
-   
-
         // Deduct amount only after
         // RazorpayX processed the payout
         wallet.balance -= transaction.amount
@@ -319,23 +290,19 @@ c
           session
         })
 
-        transaction.payoutStatus =
-          'SUCCESS'
-
+        transaction.payoutStatus ='SUCCESS'
+        
         transaction.balanceAfter =
           wallet.balance
 
-        await transaction.save({
-          session
-        })
+        await transaction.save({ session})
 
         await session.commitTransaction()
 
       
       } catch (error) {
-        
-        await session.abortTransaction()
 
+        await session.abortTransaction()
         throw error
 
       } finally {
@@ -344,68 +311,49 @@ c
       }
     }
 
-
-    
-
     else if (
-      event === 'payout.rejected'
-    ) {
-
- 
+      event === 'payout.rejected' ) {
 
       // Already finalized
       if (
         transaction.payoutStatus === 'FAILED' ||
         transaction.payoutStatus === 'SUCCESS'
       ) {
-
-       
-
         return res.status(200).json({
           success: true
         })
       }
 
-      transaction.payoutStatus =
-        'FAILED'
+      transaction.payoutStatus = 'FAILED'
 
       await transaction.save()
 
-
     }
 
-
-    
     else if (
       event === 'payout.reversed'
     ) {
-
-     
 
       // Already reversed
       if (
         transaction.payoutStatus === 'FAILED'
       ) {
 
-      
-
         return res.status(200).json({
           success: true
         })
       }
 
-      const session =
-        await mongoose.startSession()
+      const session =await mongoose.startSession()
 
       try {
 
         session.startTransaction()
 
-        const wallet =
-          await Wallet.findById(
-            transaction.wallet
-          ).session(session)
+        const wallet = await Wallet.findById(transaction.wallet)
+            .session(session)
 
+         
         if (!wallet) {
           throw new Error(
             'Wallet not found'
